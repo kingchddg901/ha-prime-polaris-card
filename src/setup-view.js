@@ -18,6 +18,11 @@ function escapeHtml(s) {
 
 const INDOOR_RE = /\b(indoor|inside|bedroom|bathroom|kitchen|living|hallway|office|garage|attic|basement|fridge|freezer|oven|refrigerator|dishwasher|washer|dryer|cpu|gpu|battery|server|chip|water_heater|coolant|pool|spa|jacuzzi|hot_tub|aquarium|fishtank|car|vehicle|engine)\b/i;
 
+// Derived / composite temperature values from weather stations that
+// aren't useful as cook-context ambient. We want raw outdoor air temp,
+// not what it "feels like" or the dew point.
+const DERIVED_TEMP_RE = /\b(feels[ _-]?like|apparent[ _-]?(temp|temperature)|dew[ _-]?point|heat[ _-]?index|wind[ _-]?chill|windchill)\b/i;
+
 const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|yard|weather|ambient|station|pws|awn|tempest|davis|ecowitt|netatmo)\b/i;
 
 // Most weather / outdoor-station integrations stamp an `attribution`
@@ -41,6 +46,7 @@ function detectAmbientCandidates(hass, prefix) {
   for (const [eid, st] of Object.entries(hass.states)) {
     if (ownPrefixRe && ownPrefixRe.test(eid)) continue;
     if (INDOOR_RE.test(eid)) continue;
+    if (DERIVED_TEMP_RE.test(eid)) continue;
 
     // Weather entities almost always qualify (typically one per install)
     if (eid.startsWith("weather.")) {
