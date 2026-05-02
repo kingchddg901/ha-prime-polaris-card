@@ -8,6 +8,7 @@ import { buildState }       from "./state.js";
 import { makeActions }      from "./actions.js";
 import { STYLES }           from "./styles.js";
 import { ChartController }  from "./chart.js";
+import { attachGaugeDrag }  from "./arc-gauge.js";
 import {
   renderChamber,
   renderStatusChips,
@@ -95,6 +96,13 @@ class HaPrimePolarisCard extends HTMLElement {
     this._fill("probes",     renderProbes(state));
     this._fillPreserveFocus("controls", renderControls(state));
     this._fillPreserveFocus("session",  renderSession(state));
+
+    // Re-bind drag-to-set on the freshly-rendered gauge
+    const gauge = this.shadowRoot.querySelector('[data-gauge="true"]');
+    if (gauge) {
+      const actions = makeActions(this._hass, this._state);
+      attachGaugeDrag(gauge, (v) => actions.setSetpoint(v));
+    }
 
     // Chart updates (entity ids depend on prefix)
     if (this._hass && state) {

@@ -3,6 +3,7 @@
 // listeners on each render via the `data-action` attribute pattern.
 
 import { CHAMBER_BAND_F } from "./theme.js";
+import { renderArcGauge } from "./arc-gauge.js";
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({
@@ -16,21 +17,19 @@ function escapeHtml(s) {
 export function renderChamber(state) {
   if (!state) return "";
   const { chamber, setpoint, chamberDelta } = state;
-  let cls = "steady";
-  if (chamberDelta != null) {
-    if (chamberDelta > CHAMBER_BAND_F)  cls = "over";
-    if (chamberDelta < -CHAMBER_BAND_F) cls = "under";
-  }
   const deltaTxt = chamberDelta != null
     ? `Δ ${chamberDelta > 0 ? "+" : ""}${chamberDelta.toFixed(0)}°F`
     : "";
   return `
-    <div class="panel tall">
+    <div class="panel tall arc-panel">
       <div class="panel-label">Chamber</div>
-      <div class="big-temp ${cls}">
-        ${chamber != null ? chamber.toFixed(0) : "—"}<span class="unit">°F</span>
-      </div>
-      <div class="delta">setpoint ${setpoint ?? "—"}°F · ${deltaTxt}</div>
+      ${renderArcGauge({
+        min: 180,
+        max: 500,
+        current: chamber,
+        target:  setpoint,
+      })}
+      <div class="delta">${deltaTxt} · drag the dot to set</div>
     </div>
   `;
 }
@@ -136,26 +135,10 @@ export function renderProbes(state) {
 
 export function renderControls(state) {
   if (!state) return "";
-  const sp = state.setpoint ?? 225;
   const smokeLevelVal = state.smokeLevel ?? 0;
   return `
     <div class="panel">
       <div class="panel-label">Controls</div>
-      <div class="stepper-row">
-        <span class="stepper-label">Setpoint</span>
-        <button class="action stepper-btn" data-action="temp-down">−</button>
-        <input
-          type="number"
-          inputmode="numeric"
-          min="180"
-          max="500"
-          step="1"
-          class="stepper-input"
-          data-input="setpoint"
-          value="${sp}">
-        <span class="stepper-unit">°F</span>
-        <button class="action stepper-btn" data-action="temp-up">+</button>
-      </div>
       <div class="stepper-row">
         <span class="stepper-label">Smoke level</span>
         <input

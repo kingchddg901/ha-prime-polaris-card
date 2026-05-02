@@ -150,6 +150,21 @@ export const STYLES = `
     accent-color: ${THEME.accent};
     height: 6px;
   }
+  .arc-panel {
+    align-items: center;
+  }
+  .arc-gauge {
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    display: block;
+    margin: 4px auto 0;
+    user-select: none;
+    touch-action: none;
+  }
+  .arc-gauge text {
+    font-family: var(--paper-font-body1_-_font-family, system-ui, sans-serif);
+  }
   button.action {
     background: ${THEME.panel};
     color: ${THEME.text};
