@@ -1,6 +1,6 @@
 {
   "name": "ha-prime-polaris-card",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Custom Lovelace card for the Prime Polaris / GrillirG pellet grill HA integration.",
   "scripts": {
     "build": "esbuild src/all-cards.js --bundle --minify --format=esm --target=es2020 --outfile=dist/ha-prime-polaris-card.js",

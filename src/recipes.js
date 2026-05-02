@@ -5,7 +5,15 @@
 // being set get keys. Missing fields = "leave as-is" so users
 // don't see their other knobs spuriously reset.
 
+// IMPORTANT: smoke mode and temperature setpoint are mutually
+// exclusive at the firepot. When both are set, smoke wins at the
+// auger and the setpoint is silently ignored. So:
+//   - Temperature recipes: setpoint + explicitly turn smoke OFF
+//   - Smoke recipes:       smoke ON + level, NO setpoint at all
+// Never specify both in the same recipe.
+
 export const DEFAULT_RECIPES = [
+  // --- Temperature-mode recipes -----------------------------
   {
     id: "brisket",
     name: "Brisket Low & Slow",
@@ -13,22 +21,10 @@ export const DEFAULT_RECIPES = [
     apply: { setpoint: 225, smoke_mode: false, probe_1_target: 203, protein: "brisket" },
   },
   {
-    id: "brisket_smoke",
-    name: "Brisket + Smoke",
-    description: "225°F · smoke 5 · P1→203°F",
-    apply: { setpoint: 225, smoke_mode: true, smoke_level: 5, probe_1_target: 203, protein: "brisket" },
-  },
-  {
     id: "pork_shoulder",
     name: "Pork Shoulder",
     description: "250°F · P1→203°F",
     apply: { setpoint: 250, smoke_mode: false, probe_1_target: 203, protein: "pork shoulder" },
-  },
-  {
-    id: "ribs",
-    name: "Ribs",
-    description: "225°F · smoke 4 · P1→195°F",
-    apply: { setpoint: 225, smoke_mode: true, smoke_level: 4, probe_1_target: 195, protein: "ribs" },
   },
   {
     id: "chicken",
@@ -48,11 +44,25 @@ export const DEFAULT_RECIPES = [
     description: "500°F",
     apply: { setpoint: 500, smoke_mode: false },
   },
+
+  // --- Smoke-mode recipes (no setpoint — controller P-cycles) ---
+  {
+    id: "smoke_brisket",
+    name: "Brisket Smoke",
+    description: "Smoke 5 · P1→203°F",
+    apply: { smoke_mode: true, smoke_level: 5, probe_1_target: 203, protein: "brisket" },
+  },
+  {
+    id: "smoke_ribs",
+    name: "Ribs Smoke",
+    description: "Smoke 4 · P1→195°F",
+    apply: { smoke_mode: true, smoke_level: 4, probe_1_target: 195, protein: "ribs" },
+  },
   {
     id: "smoke_only",
     name: "Smoke Only",
-    description: "200°F · smoke 8",
-    apply: { setpoint: 200, smoke_mode: true, smoke_level: 8 },
+    description: "Smoke 8",
+    apply: { smoke_mode: true, smoke_level: 8 },
   },
 ];
 
