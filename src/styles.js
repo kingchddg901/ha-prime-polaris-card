@@ -255,6 +255,8 @@ export const STYLES = `
   }
   .alarm-dismiss:hover { background: rgba(255,255,255,0.1); }
   .small { font-size: 11px; color: ${THEME.textDim}; }
+  .env-line { margin-top: 6px; }
+  .env-line strong { color: ${THEME.text}; font-weight: 500; }
 
   @media (max-width: 600px) {
     .row { grid-template-columns: 1fr; }
