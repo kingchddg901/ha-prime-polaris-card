@@ -10,11 +10,17 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// Heuristics for finding likely outdoor temp / wind sensors in HA.
-// Permissive — we suggest candidates but the user picks. Sensors that
-// look obviously indoor are excluded so we don't suggest those.
-const INDOOR_RE = /\b(indoor|inside|bedroom|bathroom|kitchen|living|hallway|office|garage|attic|basement|fridge|freezer|oven)\b/i;
-const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|yard|weather|ambient|station|pws|awn)\b/i;
+// Heuristics for finding LIKELY outdoor temp / wind sensors.
+// Strict on purpose: if a sensor's entity_id doesn't match an
+// outdoor-y hint AND it isn't a weather.* entity, it doesn't show.
+// False negatives are fine — the user can always type manually.
+// False positives (e.g. fridge / cpu / battery temps) are not.
+
+const INDOOR_RE = /\b(indoor|inside|bedroom|bathroom|kitchen|living|hallway|office|garage|attic|basement|fridge|freezer|oven|refrigerator|dishwasher|washer|dryer|cpu|gpu|battery|server|chip|water_heater|coolant|pool|spa|jacuzzi|hot_tub|aquarium|fishtank|car|vehicle|engine)\b/i;
+
+const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|yard|weather|ambient|station|pws|awn|tempest|davis|ecowitt|netatmo)\b/i;
+
+const WIND_UNIT_RE = /\b(mph|m\/s|km\/h|knots?)\b/i;
 const WIND_HINT_RE = /\b(wind|gust)\b/i;
 
 function detectAmbientCandidates(hass) {
@@ -22,26 +28,35 @@ function detectAmbientCandidates(hass) {
   const out = [];
   for (const [eid, st] of Object.entries(hass.states)) {
     if (INDOOR_RE.test(eid)) continue;
-    const dc = st.attributes?.device_class;
-    const unit = st.attributes?.unit_of_measurement;
 
-    // Weather entity → temperature attribute
+    // Weather entities almost always qualify (typically one per install)
     if (eid.startsWith("weather.")) {
       const t = parseFloat(st.attributes?.temperature);
       if (Number.isFinite(t)) {
-        out.push({ eid, value: t, unit: "°F", isHint: true, score: 5 });
+        out.push({ eid, value: t, unit: "°F" });
       }
       continue;
     }
-    // Sensor → temperature device class
-    if (dc === "temperature" || /°[FC]|degf|degc/i.test(unit || "")) {
-      const v = parseFloat(st.state);
-      if (!Number.isFinite(v)) continue;
-      const isHint = OUTDOOR_HINT_RE.test(eid);
-      out.push({ eid, value: v, unit: unit || "°F", isHint, score: isHint ? 10 : 1 });
-    }
+
+    // Sensor entities: only suggest when there's BOTH a temperature
+    // signal AND an explicit outdoor-y hint in the entity_id. This is
+    // what keeps random house-temp / device-temp sensors out of the list.
+    const dc = st.attributes?.device_class;
+    const unit = st.attributes?.unit_of_measurement || "";
+    const isTempSensor = dc === "temperature" || /°[FC]|degf|degc/i.test(unit);
+    if (!isTempSensor) continue;
+    if (!OUTDOOR_HINT_RE.test(eid)) continue;
+
+    const v = parseFloat(st.state);
+    if (!Number.isFinite(v)) continue;
+    out.push({ eid, value: v, unit: unit || "°F" });
   }
-  return out.sort((a, b) => b.score - a.score).slice(0, 6);
+  // Stable order: weather.* first, then alphabetical
+  return out.sort((a, b) => {
+    const aw = a.eid.startsWith("weather.") ? 0 : 1;
+    const bw = b.eid.startsWith("weather.") ? 0 : 1;
+    return aw - bw || a.eid.localeCompare(b.eid);
+  }).slice(0, 6);
 }
 
 function detectWindCandidates(hass) {
@@ -50,14 +65,16 @@ function detectWindCandidates(hass) {
   for (const [eid, st] of Object.entries(hass.states)) {
     if (INDOOR_RE.test(eid)) continue;
     const unit = st.attributes?.unit_of_measurement || "";
+    // Require BOTH an entity_id wind hint AND a wind-y unit.
+    // This filters things like sensor.battery_voltage that might
+    // accidentally be in m/s, or sensor.window_count.
+    if (!WIND_HINT_RE.test(eid)) continue;
+    if (!WIND_UNIT_RE.test(unit)) continue;
     const v = parseFloat(st.state);
     if (!Number.isFinite(v)) continue;
-    const eidWind = WIND_HINT_RE.test(eid);
-    const unitWind = /mph|m\/s|km\/h|knots?/i.test(unit);
-    if (!eidWind && !unitWind) continue;
-    out.push({ eid, value: v, unit, score: (eidWind && unitWind) ? 10 : 5 });
+    out.push({ eid, value: v, unit });
   }
-  return out.sort((a, b) => b.score - a.score).slice(0, 4);
+  return out.sort((a, b) => a.eid.localeCompare(b.eid)).slice(0, 4);
 }
 
 function renderCandidateChips(candidates, purpose, currentValue) {
@@ -165,8 +182,10 @@ export function renderSetup(state, config, hass) {
             detectWindCandidates(hass))}
       </div>
       <div class="small" style="margin-top:8px;">
-        💡 Click any suggested chip to apply it. Suggestions are auto-detected
-        outdoor / weather-related entities from your HA install.
+        💡 Suggestions are conservative — only <strong>weather.*</strong> entities
+        and sensors whose entity_id contains an outdoor hint
+        (<em>outdoor / outside / weather / station / pws / patio …</em>) show up.
+        If yours doesn't match, just type the entity_id manually.
       </div>
     </div>
   `;
