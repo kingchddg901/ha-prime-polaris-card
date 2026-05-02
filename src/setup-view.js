@@ -169,6 +169,29 @@ function renderCandidateChips(candidates, purpose, currentValue) {
   `;
 }
 
+/** ha-entity-picker row — uses HA's native entity dropdown for typo-free
+ *  selection. The picker is wired up imperatively in main.js after
+ *  rendering (it needs `hass` set as a property, not an attribute). */
+function renderEntityPickerRow(label, inputKey, raw, resolved) {
+  let badge = "";
+  if (raw) {
+    badge = (resolved && resolved.value != null)
+      ? `<span class="resolved-badge ok">${resolved.value.toFixed(1)}°F</span>`
+      : `<span class="resolved-badge bad">unresolved</span>`;
+  }
+  return `
+    <label>${label}</label>
+    <ha-entity-picker
+      data-input="${inputKey}"
+      data-current="${escapeHtml(raw || "")}"
+      data-include-domains="sensor,input_number,weather,number"
+      data-include-device-classes="temperature"
+      allow-custom-entity>
+    </ha-entity-picker>
+    ${badge || `<span></span>`}
+  `;
+}
+
 function renderSensorRow(label, inputKey, raw, resolved, unit, candidates) {
   let badge = "";
   if (raw) {
@@ -298,20 +321,16 @@ export function renderSetup(state, config, hass, otpFlow) {
     <div class="panel">
       <div class="panel-label">Probe / chamber overrides</div>
       <div class="small" style="margin-bottom:10px;">
-        OEM grill probes can drift up to 30°F vs reference probes. If you have
-        a higher-quality temperature source in HA (a wireless meat thermometer,
-        an instant-read on a Bluetooth bridge, or any HA temperature sensor you
-        trust more than the grill's own readings), point the predictor at it
-        here. ETA / stall calculations will use the override value instead.
-        Leave blank to use OEM. Per-probe; you can mix.
+        OEM grill probes can drift up to 30°F vs reference probes. Point
+        the predictor at any HA temperature sensor you trust more — a
+        wireless meat thermometer, instant-read bridge, or quality probe
+        from another integration. ETA / stall calculations use the
+        override value instead. Leave blank to use OEM.
       </div>
-      <div class="session sensor-grid">
-        ${renderSensorRow("Chamber",  "chamber_override", state.chamber_override.raw, state.chamber_override.resolved, "°F",
-            detectMeatProbeCandidates(hass, config?.entity_prefix))}
-        ${renderSensorRow("Probe 1",  "probe_1_override", state.probe1.override_raw,  state.probe1.override_resolved,  "°F",
-            detectMeatProbeCandidates(hass, config?.entity_prefix))}
-        ${renderSensorRow("Probe 2",  "probe_2_override", state.probe2.override_raw,  state.probe2.override_resolved,  "°F",
-            detectMeatProbeCandidates(hass, config?.entity_prefix))}
+      <div class="picker-grid">
+        ${renderEntityPickerRow("Chamber",  "chamber_override", state.chamber_override.raw, state.chamber_override.resolved)}
+        ${renderEntityPickerRow("Probe 1",  "probe_1_override", state.probe1.override_raw,  state.probe1.override_resolved)}
+        ${renderEntityPickerRow("Probe 2",  "probe_2_override", state.probe2.override_raw,  state.probe2.override_resolved)}
       </div>
     </div>
 

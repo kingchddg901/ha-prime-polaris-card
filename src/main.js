@@ -150,6 +150,45 @@ class HaPrimePolarisCard extends HTMLElement {
       "setup",
       renderSetup(state, this._config, this._hass, this._otpFlow),
     );
+    this._hydrateEntityPickers();
+  }
+
+  /** ha-entity-picker requires `hass` as a property and emits
+   *  `value-changed` events. Hook those up after every Setup render
+   *  (cheap — they self-deduplicate by the listener-marker pattern). */
+  _hydrateEntityPickers() {
+    const slot = this.shadowRoot.querySelector('[data-slot="setup"]');
+    if (!slot || !this._hass) return;
+    const pickers = slot.querySelectorAll("ha-entity-picker");
+    for (const picker of pickers) {
+      // Push hass + current value imperatively
+      picker.hass = this._hass;
+      const current = picker.dataset.current || "";
+      if (picker.value !== current) picker.value = current;
+      // Configure include filters (set as properties for reliability)
+      const domains = picker.dataset.includeDomains;
+      if (domains) picker.includeDomains = domains.split(",");
+      const dcs = picker.dataset.includeDeviceClasses;
+      if (dcs) picker.includeDeviceClasses = dcs.split(",");
+      // One-shot listener attach
+      if (!picker.__hpListenerAttached) {
+        picker.__hpListenerAttached = true;
+        picker.addEventListener("value-changed", (e) => {
+          const purpose = picker.dataset.input;
+          const value   = e.detail?.value ?? "";
+          const map = {
+            chamber_override:  "chamber_override",
+            probe_1_override:  "probe_1_override",
+            probe_2_override:  "probe_2_override",
+          };
+          const key = map[purpose];
+          if (key && this._hass && this._state) {
+            const actions = makeActions(this._hass, this._state);
+            actions.setText(key, value);
+          }
+        });
+      }
+    }
   }
 
   _fill(slotName, html) {

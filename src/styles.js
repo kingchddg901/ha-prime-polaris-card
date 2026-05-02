@@ -363,6 +363,22 @@ export const STYLES = `
   [data-slot="setup"] .sensor-grid {
     grid-template-columns: auto 1fr auto;
   }
+  .picker-grid {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 10px 14px;
+    align-items: center;
+  }
+  .picker-grid label {
+    color: ${THEME.textDim};
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .picker-grid ha-entity-picker {
+    display: block;
+    width: 100%;
+  }
   .cand-host {
     grid-column: 2 / -1;
     margin-top: -2px;
