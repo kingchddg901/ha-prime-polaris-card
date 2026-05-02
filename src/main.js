@@ -14,11 +14,13 @@ import {
   renderCookHeader,
   renderProbes,
   renderControls,
+  renderRecipes,
   renderSession,
   renderAlarm,
   renderTabs,
 } from "./renderers.js";
 import { renderSetup } from "./setup-view.js";
+import { resolveRecipes } from "./recipes.js";
 
 class HaPrimePolarisCard extends HTMLElement {
 
@@ -101,6 +103,7 @@ class HaPrimePolarisCard extends HTMLElement {
       </div>
       <div data-slot="probes"></div>
       <div class="chart-host" data-slot="chart"></div>
+      <div data-slot="recipes"></div>
       <div data-slot="controls"></div>
       <div data-slot="session"></div>
     `;
@@ -124,6 +127,7 @@ class HaPrimePolarisCard extends HTMLElement {
     this._fill("cookHeader", renderCookHeader(state));
     this._fill("probes",     renderProbes(state));
     this._fillPreserveFocus("chamber",  renderChamber(state));
+    this._fill("recipes",                renderRecipes(state, this._config));
     this._fillPreserveFocus("controls", renderControls(state));
     this._fillPreserveFocus("session",  renderSession(state));
 
@@ -190,8 +194,8 @@ class HaPrimePolarisCard extends HTMLElement {
     this.shadowRoot.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-action]");
       if (!btn) return;
-      // Generic "apply-default" carries purpose+value in dataset —
-      // dispatched here directly to keep _dispatchAction switch tight.
+
+      // Apply a default sensor pick (Setup → Default sensors chips)
       if (btn.dataset.action === "apply-default") {
         const purpose = btn.dataset.purpose;
         const value   = btn.dataset.value;
@@ -204,6 +208,13 @@ class HaPrimePolarisCard extends HTMLElement {
         }
         return;
       }
+
+      // Apply a recipe preset (Live → Recipes tile click)
+      if (btn.dataset.action === "apply-recipe") {
+        this._applyRecipe(btn.dataset.recipeId);
+        return;
+      }
+
       this._dispatchAction(btn.dataset.action);
     });
 
@@ -357,6 +368,49 @@ class HaPrimePolarisCard extends HTMLElement {
       await this._hass.callService("prime_polaris", "clear_cook_inputs", {});
     } catch (err) {
       console.warn("clear_cook_inputs failed:", err);
+    }
+  }
+
+  async _applyRecipe(recipeId) {
+    if (!this._hass || !this._state || !recipeId) return;
+    const recipes = resolveRecipes(this._config?.recipes);
+    const recipe = recipes.find((r) => r.id === recipeId);
+    if (!recipe || !recipe.apply) return;
+
+    const actions = makeActions(this._hass, this._state);
+    const a = recipe.apply;
+
+    // Sequence (sequential, not parallel):
+    //   1. setpoint                    — independent
+    //   2. smoke level                 — preserves current mode in payload
+    //   3. smoke mode toggle if needed — flip without losing level
+    //   4. probe targets               — independent
+    //   5. protein text                — purely UI
+    try {
+      if (a.setpoint != null) {
+        await actions.setSetpoint(
+          Math.max(180, Math.min(500, a.setpoint))
+        );
+      }
+      if (a.smoke_level != null) {
+        await actions.setSmokeLevel(
+          Math.max(0, Math.min(10, a.smoke_level))
+        );
+      }
+      if (a.smoke_mode != null && a.smoke_mode !== this._state.smokeOn) {
+        await actions.toggle("smoke_mode");
+      }
+      if (a.probe_1_target != null) {
+        await actions.setProbeTarget(1, Math.max(100, a.probe_1_target));
+      }
+      if (a.probe_2_target != null) {
+        await actions.setProbeTarget(2, Math.max(100, a.probe_2_target));
+      }
+      if (a.protein != null) {
+        await actions.setText("protein", a.protein);
+      }
+    } catch (err) {
+      console.warn(`apply-recipe (${recipeId}) failed mid-sequence:`, err);
     }
   }
 

@@ -4,6 +4,7 @@
 
 import { CHAMBER_BAND_F } from "./theme.js";
 import { renderArcGauge } from "./arc-gauge.js";
+import { resolveRecipes } from "./recipes.js";
 
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({
@@ -188,6 +189,31 @@ export function renderProbes(state) {
 }
 
 // === Controls ===============================================
+
+export function renderRecipes(state, config) {
+  if (!state) return "";
+  const recipes = resolveRecipes(config?.recipes);
+  if (recipes.length === 0) return "";
+  return `
+    <div class="panel">
+      <div class="panel-label">Recipes</div>
+      <div class="recipe-grid">
+        ${recipes.map((r) => `
+          <button class="recipe-tile"
+                  data-action="apply-recipe"
+                  data-recipe-id="${r.id}"
+                  title="${escapeHtml(r.description || "")}">
+            <span class="recipe-name">${escapeHtml(r.name)}</span>
+            <span class="recipe-desc">${escapeHtml(r.description || "")}</span>
+          </button>`).join("")}
+      </div>
+      <div class="small" style="margin-top:6px;">
+        Tap a recipe to apply grill temp, smoke, and probe targets in one shot.
+        Time is always yours to manage.
+      </div>
+    </div>
+  `;
+}
 
 export function renderControls(state) {
   if (!state) return "";

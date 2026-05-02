@@ -103,6 +103,35 @@ export const STYLES = `
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
   }
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .recipe-tile {
+    background: ${THEME.bg};
+    color: ${THEME.text};
+    border: 1px solid ${THEME.panelBorder};
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: border-color 0.15s, transform 0.05s;
+  }
+  .recipe-tile:hover { border-color: ${THEME.accent}; }
+  .recipe-tile:active { transform: scale(0.98); }
+  .recipe-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .recipe-desc {
+    font-size: 11px;
+    color: ${THEME.textDim};
+    font-variant-numeric: tabular-nums;
+  }
   .stepper-row {
     display: flex;
     align-items: center;
