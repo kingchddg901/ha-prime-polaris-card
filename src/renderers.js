@@ -68,6 +68,19 @@ export function renderCookHeader(state) {
     : "no active cook";
   const sub = state.notes ? escapeHtml(state.notes) : (live ? "" : "flip the switch when you start a real cook");
 
+  // Resolved ambient + wind (read from weather/sensor entity OR literal)
+  const env = [];
+  if (state.ambientResolved.value != null) {
+    const src = state.ambientResolved.source === "literal"
+      ? "" : ` (${escapeHtml(state.ambientResolved.source)})`;
+    env.push(`ambient ${state.ambientResolved.value.toFixed(0)}°F${src}`);
+  } else if (state.ambient) {
+    env.push(`ambient: <span style="color:#f87171">${escapeHtml(state.ambient)} unresolved</span>`);
+  }
+  if (state.windResolved.value != null) {
+    env.push(`wind ${state.windResolved.value.toFixed(1)}`);
+  }
+
   return `
     <div class="panel tall">
       <div class="panel-label">Cook session</div>
@@ -79,6 +92,7 @@ export function renderCookHeader(state) {
       </div>
       <div class="big-temp" style="font-size:22px; margin-top:8px;">${label}</div>
       <div class="small">${sub}</div>
+      ${env.length ? `<div class="small" style="margin-top:6px;">${env.join(" · ")}</div>` : ""}
     </div>
   `;
 }

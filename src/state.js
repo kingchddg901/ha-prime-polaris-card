@@ -4,6 +4,36 @@
 
 import { ENTITY_SUFFIXES } from "./constants.js";
 
+// Matches "domain.entity_id" (e.g. weather.home, sensor.outdoor_temp)
+const ENTITY_RE = /^[a-z_]+\.[a-z0-9_]+$/;
+
+/**
+ * Resolve a free-form override value (an entity_id OR a literal number)
+ * into a numeric reading.
+ *
+ *   - entity is a weather.* entity → read attributes[attrKey] (HA weather
+ *     entities have temperature/wind_speed in attributes, not state)
+ *   - any other entity → parse state as a float
+ *   - literal numeric string → parse directly
+ *   - empty / unresolvable → returns { value: null, source: "" }
+ */
+function resolveValue(hass, raw, attrKey) {
+  const out = { value: null, source: "" };
+  if (!hass || !raw) return out;
+  if (ENTITY_RE.test(raw)) {
+    const st = hass.states[raw];
+    if (!st) return { value: null, source: `${raw} (missing)` };
+    if (raw.startsWith("weather.") && st.attributes?.[attrKey] != null) {
+      const v = parseFloat(st.attributes[attrKey]);
+      return Number.isFinite(v) ? { value: v, source: raw } : out;
+    }
+    const v = parseFloat(st.state);
+    return Number.isFinite(v) ? { value: v, source: raw } : out;
+  }
+  const v = parseFloat(raw);
+  return Number.isFinite(v) ? { value: v, source: "literal" } : out;
+}
+
 export function buildState(hass, prefix) {
   if (!hass) return null;
 
@@ -71,13 +101,18 @@ export function buildState(hass, prefix) {
       ...eta(2),
     },
 
-    // Cook session inputs
+    // Cook session inputs (raw text the user typed)
     cookSession:    bool("cook_session"),
     notes:          text("notes"),
     protein:        text("protein"),
     weight_lb:      text("weight_lb"),
     ambient:        text("ambient_override"),
     wind:           text("wind_override"),
+
+    // Resolved ambient + wind (handles weather entities, sensor
+    // entities, and literal numeric values uniformly)
+    ambientResolved: resolveValue(hass, text("ambient_override"), "temperature"),
+    windResolved:    resolveValue(hass, text("wind_override"),    "wind_speed"),
 
     // Push / FCM
     pushOn:         bool("push_alerts"),
