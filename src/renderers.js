@@ -49,6 +49,19 @@ export function renderStatusChips(state) {
   if (state.winterOn) chips.push({ cls: "active", txt: "winter" });
   if (state.pushOn)   chips.push({ cls: "active", txt: "push on" });
 
+  // Ambient + wind chips (only when the user has typed something).
+  // Source attribution is dropped — they already know what they typed.
+  if (state.ambient) {
+    chips.push(state.ambientResolved.value != null
+      ? { cls: "active", txt: `ambient ${state.ambientResolved.value.toFixed(0)}°F` }
+      : { cls: "alarm",  txt: "ambient unresolved" });
+  }
+  if (state.wind) {
+    chips.push(state.windResolved.value != null
+      ? { cls: "active", txt: `wind ${state.windResolved.value.toFixed(1)}` }
+      : { cls: "alarm",  txt: "wind unresolved" });
+  }
+
   return `
     <div class="chip-row">
       ${chips.map((c) => `<span class="chip ${c.cls}">${escapeHtml(c.txt)}</span>`).join("")}
@@ -68,19 +81,6 @@ export function renderCookHeader(state) {
     : "no active cook";
   const sub = state.notes ? escapeHtml(state.notes) : (live ? "" : "flip the switch when you start a real cook");
 
-  // Resolved ambient + wind (read from weather/sensor entity OR literal)
-  const env = [];
-  if (state.ambientResolved.value != null) {
-    const src = state.ambientResolved.source === "literal"
-      ? "" : ` (${escapeHtml(state.ambientResolved.source)})`;
-    env.push(`ambient ${state.ambientResolved.value.toFixed(0)}°F${src}`);
-  } else if (state.ambient) {
-    env.push(`ambient: <span style="color:#f87171">${escapeHtml(state.ambient)} unresolved</span>`);
-  }
-  if (state.windResolved.value != null) {
-    env.push(`wind ${state.windResolved.value.toFixed(1)}`);
-  }
-
   return `
     <div class="panel tall">
       <div class="panel-label">Cook session</div>
@@ -92,7 +92,6 @@ export function renderCookHeader(state) {
       </div>
       <div class="big-temp" style="font-size:22px; margin-top:8px;">${label}</div>
       <div class="small">${sub}</div>
-      ${env.length ? `<div class="small" style="margin-top:6px;">${env.join(" · ")}</div>` : ""}
     </div>
   `;
 }
@@ -180,44 +179,23 @@ export function renderControls(state) {
 
 export function renderSession(state) {
   if (!state) return "";
-  const ambientBadge = renderResolvedBadge(state.ambient, state.ambientResolved, "°F");
-  const windBadge    = renderResolvedBadge(state.wind,    state.windResolved,    "");
   return `
     <div class="panel">
       <div class="panel-label">Session inputs</div>
       <div class="session">
         <label>Protein</label>
         <input type="text" data-input="protein"   value="${escapeHtml(state.protein)}"   placeholder="brisket / pork / ribs">
-        <span></span>
-
         <label>Weight (lb)</label>
         <input type="text" data-input="weight_lb" value="${escapeHtml(state.weight_lb)}" placeholder="16">
-        <span></span>
-
         <label>Notes</label>
         <input type="text" data-input="notes"     value="${escapeHtml(state.notes)}"     placeholder="oak, low and slow">
-        <span></span>
-
         <label>Ambient</label>
-        <input type="text" data-input="ambient"   value="${escapeHtml(state.ambient)}"   placeholder="weather.home, sensor.outdoor_temp, or 32">
-        ${ambientBadge}
-
+        <input type="text" data-input="ambient"   value="${escapeHtml(state.ambient)}"   placeholder="entity_id or fixed °F">
         <label>Wind</label>
-        <input type="text" data-input="wind"      value="${escapeHtml(state.wind)}"      placeholder="sensor.wind_speed or m/s value">
-        ${windBadge}
+        <input type="text" data-input="wind"      value="${escapeHtml(state.wind)}"      placeholder="entity_id or fixed value">
       </div>
     </div>
   `;
-}
-
-function renderResolvedBadge(raw, resolved, unitSuffix) {
-  if (!raw) {
-    return `<span></span>`;
-  }
-  if (resolved && resolved.value != null) {
-    return `<span class="resolved-badge ok">${resolved.value.toFixed(1)}${unitSuffix}</span>`;
-  }
-  return `<span class="resolved-badge bad">unresolved</span>`;
 }
 
 // === Last alarm banner ======================================
