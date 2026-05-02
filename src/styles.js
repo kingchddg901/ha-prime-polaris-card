@@ -316,7 +316,36 @@ export const STYLES = `
   .resolved-badge.ok  { color: ${THEME.steady}; border-color: ${THEME.steady}; background: rgba(34, 197, 94, 0.08); }
   .resolved-badge.bad { color: ${THEME.alarm};  border-color: ${THEME.alarm};  background: rgba(248, 113, 113, 0.08); }
   /* Setup uses 3-col grid for sensor rows (label / input / badge) */
-  [data-slot="setup"] .session {
+  [data-slot="setup"] .sensor-grid {
     grid-template-columns: auto 1fr auto;
+  }
+  .cand-host {
+    grid-column: 2 / -1;
+    margin-top: -2px;
+  }
+  .cand-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .cand-chip {
+    background: ${THEME.bg};
+    color: ${THEME.textDim};
+    border: 1px solid ${THEME.panelBorder};
+    border-radius: 999px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: monospace;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .cand-chip:hover    { border-color: ${THEME.accent}; color: ${THEME.text}; }
+  .cand-chip.selected { border-color: ${THEME.accent}; color: ${THEME.accent}; background: ${THEME.accentDim}; }
+  code {
+    background: ${THEME.bg};
+    border: 1px solid ${THEME.panelBorder};
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 11px;
   }
 `;

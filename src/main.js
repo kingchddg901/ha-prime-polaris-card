@@ -141,7 +141,7 @@ class HaPrimePolarisCard extends HTMLElement {
   }
 
   _renderSetup(state) {
-    this._fillPreserveFocus("setup", renderSetup(state, this._config));
+    this._fillPreserveFocus("setup", renderSetup(state, this._config, this._hass));
   }
 
   _fill(slotName, html) {
@@ -186,6 +186,20 @@ class HaPrimePolarisCard extends HTMLElement {
     this.shadowRoot.addEventListener("click", (e) => {
       const btn = e.target.closest("[data-action]");
       if (!btn) return;
+      // Generic "apply-default" carries purpose+value in dataset —
+      // dispatched here directly to keep _dispatchAction switch tight.
+      if (btn.dataset.action === "apply-default") {
+        const purpose = btn.dataset.purpose;
+        const value   = btn.dataset.value;
+        if (!this._hass || !this._state || !purpose) return;
+        const map = { ambient: "ambient_override", wind: "wind_override" };
+        const key = map[purpose];
+        if (key) {
+          const actions = makeActions(this._hass, this._state);
+          actions.setText(key, value);
+        }
+        return;
+      }
       this._dispatchAction(btn.dataset.action);
     });
 

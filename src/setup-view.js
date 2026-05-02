@@ -10,7 +10,73 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function renderResolvedRow(label, raw, resolved, unit) {
+// Heuristics for finding likely outdoor temp / wind sensors in HA.
+// Permissive — we suggest candidates but the user picks. Sensors that
+// look obviously indoor are excluded so we don't suggest those.
+const INDOOR_RE = /\b(indoor|inside|bedroom|bathroom|kitchen|living|hallway|office|garage|attic|basement|fridge|freezer|oven)\b/i;
+const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|yard|weather|ambient|station|pws|awn)\b/i;
+const WIND_HINT_RE = /\b(wind|gust)\b/i;
+
+function detectAmbientCandidates(hass) {
+  if (!hass) return [];
+  const out = [];
+  for (const [eid, st] of Object.entries(hass.states)) {
+    if (INDOOR_RE.test(eid)) continue;
+    const dc = st.attributes?.device_class;
+    const unit = st.attributes?.unit_of_measurement;
+
+    // Weather entity → temperature attribute
+    if (eid.startsWith("weather.")) {
+      const t = parseFloat(st.attributes?.temperature);
+      if (Number.isFinite(t)) {
+        out.push({ eid, value: t, unit: "°F", isHint: true, score: 5 });
+      }
+      continue;
+    }
+    // Sensor → temperature device class
+    if (dc === "temperature" || /°[FC]|degf|degc/i.test(unit || "")) {
+      const v = parseFloat(st.state);
+      if (!Number.isFinite(v)) continue;
+      const isHint = OUTDOOR_HINT_RE.test(eid);
+      out.push({ eid, value: v, unit: unit || "°F", isHint, score: isHint ? 10 : 1 });
+    }
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, 6);
+}
+
+function detectWindCandidates(hass) {
+  if (!hass) return [];
+  const out = [];
+  for (const [eid, st] of Object.entries(hass.states)) {
+    if (INDOOR_RE.test(eid)) continue;
+    const unit = st.attributes?.unit_of_measurement || "";
+    const v = parseFloat(st.state);
+    if (!Number.isFinite(v)) continue;
+    const eidWind = WIND_HINT_RE.test(eid);
+    const unitWind = /mph|m\/s|km\/h|knots?/i.test(unit);
+    if (!eidWind && !unitWind) continue;
+    out.push({ eid, value: v, unit, score: (eidWind && unitWind) ? 10 : 5 });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, 4);
+}
+
+function renderCandidateChips(candidates, purpose, currentValue) {
+  if (!candidates.length) return "";
+  return `
+    <div class="cand-row">
+      ${candidates.map((c) => `
+        <button class="cand-chip ${c.eid === currentValue ? "selected" : ""}"
+                data-action="apply-default"
+                data-purpose="${purpose}"
+                data-value="${escapeHtml(c.eid)}"
+                title="Click to use this sensor">
+          ${escapeHtml(c.eid)} · ${c.value.toFixed(1)}${c.unit ? " " + escapeHtml(c.unit) : ""}
+        </button>`).join("")}
+    </div>
+  `;
+}
+
+function renderSensorRow(label, inputKey, raw, resolved, unit, candidates) {
   let badge = "";
   if (raw) {
     badge = (resolved && resolved.value != null)
@@ -19,14 +85,15 @@ function renderResolvedRow(label, raw, resolved, unit) {
   }
   return `
     <label>${label}</label>
-    <input type="text" data-input="${
-      label.toLowerCase() === "ambient sensor" ? "ambient" : "wind"
-    }" value="${escapeHtml(raw)}" placeholder="entity_id (e.g. sensor.outdoor_temp)">
+    <input type="text" data-input="${inputKey}" value="${escapeHtml(raw)}" placeholder="entity_id (e.g. sensor.outdoor_temp)">
     ${badge || `<span></span>`}
+    <span></span>
+    <div class="cand-host">${renderCandidateChips(candidates, inputKey, raw)}</div>
+    <span></span>
   `;
 }
 
-export function renderSetup(state, config) {
+export function renderSetup(state, config, hass) {
   if (!state || !state.account) {
     return `
       <div class="panel"><div class="small">Loading account info…</div></div>
@@ -84,13 +151,22 @@ export function renderSetup(state, config) {
 
     <div class="panel">
       <div class="panel-label">Default sensors</div>
-      <div class="session">
-        ${renderResolvedRow("Ambient sensor", state.ambient, state.ambientResolved, "°F")}
-        ${renderResolvedRow("Wind sensor",    state.wind,    state.windResolved,    "")}
+      <div class="small" style="margin-bottom:10px;">
+        Point these at any HA temperature / wind sensor. Common picks:
+        a <strong>weather.*</strong> entity (HA's default weather integration),
+        a <strong>sensor.*</strong> from your weather station / Ambient Weather Network,
+        or just a fixed number (e.g. <code>32</code>) for cooks at a known temp.
+        Set once — per-cook overrides on the Live tab take precedence if you ever deviate.
+      </div>
+      <div class="session sensor-grid">
+        ${renderSensorRow("Ambient sensor", "ambient", state.ambient, state.ambientResolved, "°F",
+            detectAmbientCandidates(hass))}
+        ${renderSensorRow("Wind sensor",    "wind",    state.wind,    state.windResolved,    "",
+            detectWindCandidates(hass))}
       </div>
       <div class="small" style="margin-top:8px;">
-        These persist across cooks — set once. Per-cook overrides on the
-        Live tab take precedence if you ever want to deviate.
+        💡 Click any suggested chip to apply it. Suggestions are auto-detected
+        outdoor / weather-related entities from your HA install.
       </div>
     </div>
   `;
