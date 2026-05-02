@@ -5,7 +5,8 @@
   "scripts": {
     "build": "esbuild src/all-cards.js --bundle --minify --format=esm --target=es2020 --outfile=dist/ha-prime-polaris-card.js",
     "build:dev": "esbuild src/all-cards.js --bundle --format=esm --sourcemap --outfile=dist/ha-prime-polaris-card.js",
-    "watch": "esbuild src/all-cards.js --bundle --format=esm --sourcemap --outfile=dist/ha-prime-polaris-card.js --watch"
+    "watch": "esbuild src/all-cards.js --bundle --format=esm --sourcemap --outfile=dist/ha-prime-polaris-card.js --watch",
+    "deploy": "npm run build && node -e \"require('fs').copyFileSync('dist/ha-prime-polaris-card.js', process.env.PRIME_POLARIS_INTEGRATION + '/www/ha-prime-polaris-card.js')\""
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

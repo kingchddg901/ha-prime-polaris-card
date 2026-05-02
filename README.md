@@ -74,6 +74,16 @@ npm run build      # → dist/ha-prime-polaris-card.js
 npm run watch      # rebuilds on save
 ```
 
+To drop the bundled output straight into the integration's `www/` dir:
+
+```bash
+PRIME_POLARIS_INTEGRATION=//192.168.4.104/config/custom_components/prime_polaris npm run deploy
+```
+
+## Distribution model
+
+As of integration v0.2.0 the card ships **bundled with the integration** — when users install the integration, the card is auto-registered as a Lovelace resource. They don't need to install this repo separately. This repo remains the development home for the card source; the bundled `dist/ha-prime-polaris-card.js` gets copied into the integration's `www/` directory on each release.
+
 Vanilla JS, ES modules, [esbuild](https://esbuild.github.io/) bundle. No TypeScript, no Lit, no virtual DOM. The architecture mirrors [eufy-vacuum-command-center](https://github.com/kingchddg901/eufy-vacuum-command-center) but flattened to one card.
 
 ```
