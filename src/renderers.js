@@ -136,14 +136,39 @@ export function renderProbes(state) {
 
 export function renderControls(state) {
   if (!state) return "";
+  const sp = state.setpoint ?? 225;
+  const smokeLevelVal = state.smokeLevel ?? 0;
   return `
     <div class="panel">
       <div class="panel-label">Controls</div>
+      <div class="stepper-row">
+        <span class="stepper-label">Setpoint</span>
+        <button class="action stepper-btn" data-action="temp-down">−</button>
+        <input
+          type="number"
+          inputmode="numeric"
+          min="180"
+          max="500"
+          step="1"
+          class="stepper-input"
+          data-input="setpoint"
+          value="${sp}">
+        <span class="stepper-unit">°F</span>
+        <button class="action stepper-btn" data-action="temp-up">+</button>
+      </div>
+      <div class="stepper-row">
+        <span class="stepper-label">Smoke level</span>
+        <input
+          type="range"
+          min="0"
+          max="10"
+          step="1"
+          class="slider"
+          data-input="smoke_level"
+          value="${smokeLevelVal}">
+        <span class="stepper-unit" data-bind="smoke-level-readout">${smokeLevelVal}</span>
+      </div>
       <div class="controls">
-        <button class="action" data-action="temp-down-10">– 10°F</button>
-        <button class="action" data-action="temp-down">– 1°F</button>
-        <button class="action" data-action="temp-up">+ 1°F</button>
-        <button class="action" data-action="temp-up-10">+ 10°F</button>
         <button class="action ${state.smokeOn   ? "on" : ""}" data-action="toggle-smoke">Smoke</button>
         <button class="action ${state.winterOn  ? "on" : ""}" data-action="toggle-winter">Winter</button>
         <button class="action alarm ${state.alarmOn ? "on" : ""}" data-action="toggle-alarm">Alarm</button>

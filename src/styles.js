@@ -103,6 +103,53 @@ export const STYLES = `
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
   }
+  .stepper-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .stepper-label {
+    font-size: 12px;
+    color: ${THEME.textDim};
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex: 0 0 88px;
+  }
+  .stepper-input {
+    background: ${THEME.bg};
+    color: ${THEME.text};
+    border: 1px solid ${THEME.panelBorder};
+    border-radius: 6px;
+    padding: 6px 8px;
+    width: 80px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 500;
+    -moz-appearance: textfield;
+  }
+  .stepper-input::-webkit-outer-spin-button,
+  .stepper-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .stepper-input:focus { outline: none; border-color: ${THEME.accent}; }
+  .stepper-unit {
+    font-size: 13px;
+    color: ${THEME.textDim};
+    min-width: 22px;
+  }
+  .stepper-btn {
+    width: 36px;
+    padding: 6px 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .slider {
+    flex: 1;
+    accent-color: ${THEME.accent};
+    height: 6px;
+  }
   button.action {
     background: ${THEME.panel};
     color: ${THEME.text};

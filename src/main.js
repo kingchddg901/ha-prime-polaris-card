@@ -93,8 +93,8 @@ class HaPrimePolarisCard extends HTMLElement {
     this._fill("chamber",    renderChamber(state));
     this._fill("cookHeader", renderCookHeader(state));
     this._fill("probes",     renderProbes(state));
-    this._fill("controls",   renderControls(state));
-    this._fillSessionPreserveFocus(state);
+    this._fillPreserveFocus("controls", renderControls(state));
+    this._fillPreserveFocus("session",  renderSession(state));
 
     // Chart updates (entity ids depend on prefix)
     if (this._hass && state) {
@@ -116,24 +116,35 @@ class HaPrimePolarisCard extends HTMLElement {
     if (slot) slot.innerHTML = html;
   }
 
-  /** Don't blow away an input the user is currently typing in. */
-  _fillSessionPreserveFocus(state) {
-    const slot = this.shadowRoot.querySelector('[data-slot="session"]');
+  /** Render `html` into the named slot, but if the user is currently
+   *  typing in (or dragging) an input inside that slot, preserve their
+   *  in-progress value, focus, and selection. */
+  _fillPreserveFocus(slotName, html) {
+    const slot = this.shadowRoot.querySelector(`[data-slot="${slotName}"]`);
     if (!slot) return;
+
     const active = this.shadowRoot.activeElement;
-    const focusedKey = active && active.dataset?.input;
-    if (!focusedKey) {
-      slot.innerHTML = renderSession(state);
+    const isEditing = active && active.dataset?.input && slot.contains(active);
+
+    if (!isEditing) {
+      slot.innerHTML = html;
       return;
     }
-    // Update non-focused inputs only
-    const tmp = document.createElement("div");
-    tmp.innerHTML = renderSession(state);
-    tmp.querySelectorAll("[data-input]").forEach((el) => {
-      if (el.dataset.input === focusedKey) return;
-      const live = slot.querySelector(`[data-input="${el.dataset.input}"]`);
-      if (live && live.value !== el.value) live.value = el.value;
-    });
+
+    // Capture the focused input's transient state, render, then restore.
+    const focusedKey = active.dataset.input;
+    const focusedValue = active.value;
+    const focusedStart = active.selectionStart;
+    const focusedEnd   = active.selectionEnd;
+
+    slot.innerHTML = html;
+
+    const newFocused = slot.querySelector(`[data-input="${focusedKey}"]`);
+    if (newFocused) {
+      newFocused.value = focusedValue;
+      newFocused.focus();
+      try { newFocused.setSelectionRange(focusedStart, focusedEnd); } catch {}
+    }
   }
 
   // --- Event wiring ---------------------------------------
@@ -149,15 +160,45 @@ class HaPrimePolarisCard extends HTMLElement {
       const input = e.target.closest("[data-input]");
       if (!input) return;
       const actions = makeActions(this._hass, this._state);
-      const map = {
+      const key = input.dataset.input;
+
+      // Setpoint number input (commit on Enter / blur / step button)
+      if (key === "setpoint") {
+        const v = parseInt(input.value, 10);
+        if (Number.isFinite(v)) {
+          actions.setSetpoint(Math.max(180, Math.min(500, v)));
+        }
+        return;
+      }
+
+      // Smoke level slider (commit on release)
+      if (key === "smoke_level") {
+        const v = parseInt(input.value, 10);
+        if (Number.isFinite(v)) {
+          actions.setSmokeLevel(Math.max(0, Math.min(10, v)));
+        }
+        return;
+      }
+
+      // Free-form text inputs
+      const textMap = {
         notes:      "notes",
         protein:    "protein",
         weight_lb:  "weight_lb",
         ambient:    "ambient_override",
         wind:       "wind_override",
       };
-      const key = map[input.dataset.input];
-      if (key) actions.setText(key, input.value);
+      if (textMap[key]) actions.setText(textMap[key], input.value);
+    });
+
+    // Live readout for the smoke-level slider while dragging
+    this.shadowRoot.addEventListener("input", (e) => {
+      const input = e.target.closest('[data-input="smoke_level"]');
+      if (!input) return;
+      const readout = this.shadowRoot.querySelector(
+        '[data-bind="smoke-level-readout"]'
+      );
+      if (readout) readout.textContent = input.value;
     });
   }
 
@@ -174,8 +215,6 @@ class HaPrimePolarisCard extends HTMLElement {
       case "toggle-push":    actions.toggle("push_alerts");   break;
       case "temp-up":        actions.setSetpoint(Math.min(500, sp + 1));  break;
       case "temp-down":      actions.setSetpoint(Math.max(180, sp - 1));  break;
-      case "temp-up-10":     actions.setSetpoint(Math.min(500, sp + 10)); break;
-      case "temp-down-10":   actions.setSetpoint(Math.max(180, sp - 10)); break;
       case "power-off":      actions.powerOff();              break;
     }
   }
