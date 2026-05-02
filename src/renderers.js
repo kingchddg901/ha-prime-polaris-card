@@ -109,18 +109,18 @@ export function renderCookHeader(state) {
     : "no active cook";
   const sub = state.notes ? escapeHtml(state.notes) : (live ? "" : "flip the switch when you start a real cook");
 
-  // Read-only environment summary — same data as the chip strip,
-  // surfaced here too because this is the panel that frames the
-  // cook context. Only renders when at least one resolves.
-  const env = [];
+  // Read-only environment summary — rendered as chips so the
+  // cook session tile reads the same way as the top chip strip
+  // (consistent visual language for status / context info).
+  const envChips = [];
   if (state.ambientResolved.value != null) {
-    env.push(`ambient <strong>${state.ambientResolved.value.toFixed(0)}°F</strong>`);
+    envChips.push(`<span class="chip active">Ambient ${state.ambientResolved.value.toFixed(0)}°F</span>`);
   }
   if (state.windResolved.value != null) {
-    env.push(`wind <strong>${state.windResolved.value.toFixed(1)}</strong>`);
+    envChips.push(`<span class="chip active">Wind ${state.windResolved.value.toFixed(1)}</span>`);
   }
-  const envLine = env.length
-    ? `<div class="small env-line">${env.join(" · ")}</div>`
+  const envLine = envChips.length
+    ? `<div class="chip-row env-chips">${envChips.join("")}</div>`
     : "";
 
   return `
