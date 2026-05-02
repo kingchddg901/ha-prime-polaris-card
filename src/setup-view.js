@@ -23,10 +23,16 @@ const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|y
 const WIND_UNIT_RE = /\b(mph|m\/s|km\/h|knots?)\b/i;
 const WIND_HINT_RE = /\b(wind|gust)\b/i;
 
-function detectAmbientCandidates(hass) {
+function detectAmbientCandidates(hass, prefix) {
   if (!hass) return [];
+  // Never suggest our own integration's entities (e.g. sensor.grill_*).
+  // The configured entity_prefix tells us what to skip.
+  const ownPrefixRe = prefix
+    ? new RegExp(`^[a-z_]+\\.${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_`, "i")
+    : null;
   const out = [];
   for (const [eid, st] of Object.entries(hass.states)) {
+    if (ownPrefixRe && ownPrefixRe.test(eid)) continue;
     if (INDOOR_RE.test(eid)) continue;
 
     // Weather entities almost always qualify (typically one per install)
@@ -59,10 +65,14 @@ function detectAmbientCandidates(hass) {
   }).slice(0, 6);
 }
 
-function detectWindCandidates(hass) {
+function detectWindCandidates(hass, prefix) {
   if (!hass) return [];
+  const ownPrefixRe = prefix
+    ? new RegExp(`^[a-z_]+\\.${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_`, "i")
+    : null;
   const out = [];
   for (const [eid, st] of Object.entries(hass.states)) {
+    if (ownPrefixRe && ownPrefixRe.test(eid)) continue;
     if (INDOOR_RE.test(eid)) continue;
     const unit = st.attributes?.unit_of_measurement || "";
     // Require BOTH an entity_id wind hint AND a wind-y unit.
@@ -177,9 +187,9 @@ export function renderSetup(state, config, hass) {
       </div>
       <div class="session sensor-grid">
         ${renderSensorRow("Ambient sensor", "ambient", state.ambient, state.ambientResolved, "°F",
-            detectAmbientCandidates(hass))}
+            detectAmbientCandidates(hass, config?.entity_prefix))}
         ${renderSensorRow("Wind sensor",    "wind",    state.wind,    state.windResolved,    "",
-            detectWindCandidates(hass))}
+            detectWindCandidates(hass, config?.entity_prefix))}
       </div>
       <div class="small" style="margin-top:8px;">
         💡 Suggestions are conservative — only <strong>weather.*</strong> entities
