@@ -195,12 +195,20 @@ class HaPrimePolarisCard extends HTMLElement {
       const btn = e.target.closest("[data-action]");
       if (!btn) return;
 
-      // Apply a default sensor pick (Setup → Default sensors chips)
+      // Apply a default sensor pick (Setup → Default sensors chips
+      // and Setup → Probe / chamber overrides chips). Both flows pass
+      // a `purpose` data attr that maps to the right text entity.
       if (btn.dataset.action === "apply-default") {
         const purpose = btn.dataset.purpose;
         const value   = btn.dataset.value;
         if (!this._hass || !this._state || !purpose) return;
-        const map = { ambient: "ambient_override", wind: "wind_override" };
+        const map = {
+          ambient:           "ambient_override",
+          wind:              "wind_override",
+          chamber_override:  "chamber_override",
+          probe_1_override:  "probe_1_override",
+          probe_2_override:  "probe_2_override",
+        };
         const key = map[purpose];
         if (key) {
           const actions = makeActions(this._hass, this._state);
@@ -266,11 +274,14 @@ class HaPrimePolarisCard extends HTMLElement {
 
       // Free-form text inputs
       const textMap = {
-        notes:      "notes",
-        protein:    "protein",
-        weight_lb:  "weight_lb",
-        ambient:    "ambient_override",
-        wind:       "wind_override",
+        notes:             "notes",
+        protein:           "protein",
+        weight_lb:         "weight_lb",
+        ambient:           "ambient_override",
+        wind:              "wind_override",
+        chamber_override:  "chamber_override",
+        probe_1_override:  "probe_1_override",
+        probe_2_override:  "probe_2_override",
       };
       if (textMap[key]) actions.setText(textMap[key], input.value);
     });

@@ -17,10 +17,21 @@ function escapeHtml(s) {
 
 export function renderChamber(state) {
   if (!state) return "";
-  const { chamber, setpoint, chamberDelta } = state;
-  const deltaTxt = chamberDelta != null
-    ? `Δ ${chamberDelta > 0 ? "+" : ""}${chamberDelta.toFixed(0)}°F`
+  const { chamber: chamberOem, setpoint, chamberDelta } = state;
+  const overrideVal = state.chamber_override?.resolved?.value;
+  const overrideRaw = state.chamber_override?.raw;
+  // If override resolves, use it as the gauge's current value AND the
+  // delta basis. Predictor-side already does this; visualise the same
+  // truth here so user's eyes line up with the math.
+  const chamber = overrideVal != null ? overrideVal : chamberOem;
+  const deltaUsed = (chamber != null && setpoint != null)
+    ? chamber - setpoint : null;
+  const deltaTxt = deltaUsed != null
+    ? `Δ ${deltaUsed > 0 ? "+" : ""}${deltaUsed.toFixed(0)}°F`
     : "";
+  const overrideHint = overrideVal != null
+    ? `<div class="small">controller ${chamberOem != null ? chamberOem.toFixed(0) + "°F" : "—"} · using override</div>`
+    : (overrideRaw ? `<div class="small" style="color:var(--error-color,#f87171)">override unresolved</div>` : "");
   const sp = setpoint ?? 225;
   return `
     <div class="panel tall arc-panel">
@@ -32,6 +43,7 @@ export function renderChamber(state) {
         target:  setpoint,
       })}
       <div class="delta">${deltaTxt}</div>
+      ${overrideHint}
       <div class="stepper-row chamber-setpoint">
         <span class="stepper-label">Setpoint</span>
         <button class="action stepper-btn" data-action="temp-down">−</button>
@@ -143,7 +155,13 @@ export function renderCookHeader(state) {
 // === Probes ==================================================
 
 function renderProbe(probeNum, p) {
-  if (p.temp == null) {
+  // Override resolution — predictor already prefers override when set;
+  // mirror that visually so the displayed temp matches the ETA's basis.
+  const overrideVal = p.override_resolved?.value;
+  const overrideRaw = p.override_raw;
+  const tempUsed = overrideVal != null ? overrideVal : p.temp;
+
+  if (tempUsed == null) {
     return `
       <div class="panel">
         <div class="probe">
@@ -153,6 +171,7 @@ function renderProbe(probeNum, p) {
       </div>
     `;
   }
+
   let etaTxt = "fitting…";
   let etaCls = "fitting";
   if (p.in_stall) {
@@ -163,14 +182,20 @@ function renderProbe(probeNum, p) {
     etaTxt = m >= 60 ? `ETA ${(m / 60).toFixed(1)} h` : `ETA ${m.toFixed(0)} min`;
     etaCls = "";
   }
+
+  const overrideHint = overrideVal != null
+    ? `<div class="small">OEM ${p.temp != null ? p.temp.toFixed(0) + "°F" : "—"} · using override</div>`
+    : (overrideRaw ? `<div class="small" style="color:var(--error-color,#f87171)">override unresolved</div>` : "");
+
   return `
     <div class="panel">
       <div class="probe">
         <div class="probe-label">Probe ${probeNum}</div>
         <div>
-          <div class="probe-temp">${p.temp.toFixed(0)}°F</div>
+          <div class="probe-temp">${tempUsed.toFixed(0)}°F</div>
           <div class="probe-target">→ ${p.target ?? "—"}°F</div>
           <div class="probe-eta ${etaCls}">${escapeHtml(etaTxt)}</div>
+          ${overrideHint}
           ${p.source ? `<div class="small">prior: ${escapeHtml(p.source)}</div>` : ""}
         </div>
       </div>

@@ -89,16 +89,26 @@ export function buildState(hass, prefix) {
     winterOn:       bool("winter_mode"),
     alarmOn:        bool("alarm"),
 
-    // Probes
+    // Probes — both OEM reading and override (if set)
     probe1: {
       temp:    num("probe_1_temp"),
       target:  num("probe_1_target"),
+      override_raw:      text("probe_1_override"),
+      override_resolved: resolveValue(hass, text("probe_1_override"), "temperature"),
       ...eta(1),
     },
     probe2: {
       temp:    num("probe_2_temp"),
       target:  num("probe_2_target"),
+      override_raw:      text("probe_2_override"),
+      override_resolved: resolveValue(hass, text("probe_2_override"), "temperature"),
       ...eta(2),
+    },
+
+    // Chamber override (used by predictor when set)
+    chamber_override: {
+      raw:      text("chamber_override"),
+      resolved: resolveValue(hass, text("chamber_override"), "temperature"),
     },
 
     // Cook session inputs (raw text the user typed)

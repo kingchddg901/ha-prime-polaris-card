@@ -1,7 +1,7 @@
 // Single source of truth for the custom-element name and version.
 
 export const CARD_NAME    = "ha-prime-polaris-card";
-export const CARD_VERSION = "0.4.2";
+export const CARD_VERSION = "0.5.0";
 
 // Default entity prefix when card config doesn't override.
 // Most HA installs of the Prime Polaris integration end up with
@@ -38,6 +38,9 @@ export const ENTITY_SUFFIXES = {
   weight_lb:              "text.{prefix}_cook_weight_lb",
   ambient_override:       "text.{prefix}_cook_ambient_override",
   wind_override:          "text.{prefix}_cook_wind_override",
+  chamber_override:       "text.{prefix}_chamber_override_entity",
+  probe_1_override:       "text.{prefix}_probe_1_override_entity",
+  probe_2_override:       "text.{prefix}_probe_2_override_entity",
 };
 
 // Chart configuration

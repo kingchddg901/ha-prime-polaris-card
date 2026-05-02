@@ -91,6 +91,42 @@ function detectAmbientCandidates(hass, prefix) {
   }).slice(0, 6);
 }
 
+// Probe / chamber override candidates. Different from outdoor-temp
+// detection — we WANT indoor sensors here (meat probes, sous vide,
+// bluetooth thermometers — all live indoor or in/around food).
+// Excluded: own integration entities, derived weather temps, obvious
+// non-cooking sensors (battery / cpu / fridge / etc).
+const COOKING_HINT_RE = /\b(probe|meat|temp|thermo|maven|inkbird|meater|sous|brisket|smoker|grill|cook|food|kitchen)\b/i;
+const NON_COOKING_RE = /\b(cpu|gpu|battery|server|coolant|car|engine|aquarium|pool|spa|jacuzzi|hot_tub|water_heater|chip|fridge|freezer)\b/i;
+
+function detectMeatProbeCandidates(hass, prefix) {
+  if (!hass) return [];
+  const ownPrefixRe = prefix
+    ? new RegExp(`^[a-z_]+\\.${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_`, "i")
+    : null;
+  const out = [];
+  for (const [eid, st] of Object.entries(hass.states)) {
+    if (ownPrefixRe && ownPrefixRe.test(eid)) continue;
+    if (NON_COOKING_RE.test(eid)) continue;
+    if (DERIVED_TEMP_RE.test(eid)) continue;
+
+    const dc = st.attributes?.device_class;
+    const unit = st.attributes?.unit_of_measurement || "";
+    const isTempSensor = dc === "temperature" || /°[FC]|degf|degc/i.test(unit);
+    if (!isTempSensor) continue;
+
+    const v = parseFloat(st.state);
+    if (!Number.isFinite(v)) continue;
+
+    // Score: cooking-hint name = priority; otherwise show but lower
+    const score = COOKING_HINT_RE.test(eid) ? 10 : 1;
+    out.push({ eid, value: v, unit: unit || "°F", score });
+  }
+  return out
+    .sort((a, b) => b.score - a.score || a.eid.localeCompare(b.eid))
+    .slice(0, 8);
+}
+
 function detectWindCandidates(hass, prefix) {
   if (!hass) return [];
   const ownPrefixRe = prefix
@@ -256,6 +292,26 @@ export function renderSetup(state, config, hass, otpFlow) {
       <div class="small" style="margin-top:8px;">
         Pushes for the same alarm category fire every ~25–30 s while the
         condition persists; the dedupe window suppresses repeats.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">Probe / chamber overrides</div>
+      <div class="small" style="margin-bottom:10px;">
+        OEM grill probes can drift up to 30°F vs reference probes. If you have
+        a higher-quality temperature source in HA (a wireless meat thermometer,
+        an instant-read on a Bluetooth bridge, or any HA temperature sensor you
+        trust more than the grill's own readings), point the predictor at it
+        here. ETA / stall calculations will use the override value instead.
+        Leave blank to use OEM. Per-probe; you can mix.
+      </div>
+      <div class="session sensor-grid">
+        ${renderSensorRow("Chamber",  "chamber_override", state.chamber_override.raw, state.chamber_override.resolved, "°F",
+            detectMeatProbeCandidates(hass, config?.entity_prefix))}
+        ${renderSensorRow("Probe 1",  "probe_1_override", state.probe1.override_raw,  state.probe1.override_resolved,  "°F",
+            detectMeatProbeCandidates(hass, config?.entity_prefix))}
+        ${renderSensorRow("Probe 2",  "probe_2_override", state.probe2.override_raw,  state.probe2.override_resolved,  "°F",
+            detectMeatProbeCandidates(hass, config?.entity_prefix))}
       </div>
     </div>
 
