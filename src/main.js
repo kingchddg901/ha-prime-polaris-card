@@ -172,8 +172,10 @@ class HaPrimePolarisCard extends HTMLElement {
       case "toggle-winter":  actions.toggle("winter_mode");   break;
       case "toggle-alarm":   actions.toggle("alarm");         break;
       case "toggle-push":    actions.toggle("push_alerts");   break;
-      case "temp-up":        actions.setSetpoint(Math.min(500, sp + 5)); break;
-      case "temp-down":      actions.setSetpoint(Math.max(180, sp - 5)); break;
+      case "temp-up":        actions.setSetpoint(Math.min(500, sp + 1));  break;
+      case "temp-down":      actions.setSetpoint(Math.max(180, sp - 1));  break;
+      case "temp-up-10":     actions.setSetpoint(Math.min(500, sp + 10)); break;
+      case "temp-down-10":   actions.setSetpoint(Math.max(180, sp - 10)); break;
       case "power-off":      actions.powerOff();              break;
     }
   }

@@ -140,8 +140,10 @@ export function renderControls(state) {
     <div class="panel">
       <div class="panel-label">Controls</div>
       <div class="controls">
-        <button class="action" data-action="temp-down">– 5°F</button>
-        <button class="action" data-action="temp-up">+ 5°F</button>
+        <button class="action" data-action="temp-down-10">– 10°F</button>
+        <button class="action" data-action="temp-down">– 1°F</button>
+        <button class="action" data-action="temp-up">+ 1°F</button>
+        <button class="action" data-action="temp-up-10">+ 10°F</button>
         <button class="action ${state.smokeOn   ? "on" : ""}" data-action="toggle-smoke">Smoke</button>
         <button class="action ${state.winterOn  ? "on" : ""}" data-action="toggle-winter">Winter</button>
         <button class="action alarm ${state.alarmOn ? "on" : ""}" data-action="toggle-alarm">Alarm</button>
