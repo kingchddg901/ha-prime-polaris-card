@@ -65,13 +65,12 @@ export function renderArcGauge(cfg) {
         stroke-linecap="round"
         fill="none" />
 
-      <!-- setpoint thumb -->
+      <!-- setpoint indicator (display-only; setpoint is set via the
+           type-in input in the chamber panel) -->
       <circle cx="${tgtPos.x}" cy="${tgtPos.y}" r="11"
         fill="${THEME.accent}"
         stroke="${THEME.text}"
-        stroke-width="2"
-        data-thumb="true"
-        style="cursor: grab;" />
+        stroke-width="2" />
 
       <!-- center readout: big chamber temp, small target -->
       <text x="${cx}" y="${cy - 4}"

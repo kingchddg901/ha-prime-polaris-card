@@ -153,6 +153,11 @@ export const STYLES = `
   .arc-panel {
     align-items: center;
   }
+  .chamber-setpoint {
+    margin: 4px auto 0;
+    justify-content: center;
+  }
+  .chamber-setpoint .stepper-label { flex: 0 0 auto; }
   .arc-gauge {
     width: 100%;
     max-width: 260px;

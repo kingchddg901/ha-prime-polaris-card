@@ -20,6 +20,7 @@ export function renderChamber(state) {
   const deltaTxt = chamberDelta != null
     ? `Δ ${chamberDelta > 0 ? "+" : ""}${chamberDelta.toFixed(0)}°F`
     : "";
+  const sp = setpoint ?? 225;
   return `
     <div class="panel tall arc-panel">
       <div class="panel-label">Chamber</div>
@@ -29,7 +30,22 @@ export function renderChamber(state) {
         current: chamber,
         target:  setpoint,
       })}
-      <div class="delta">${deltaTxt} · drag the dot to set</div>
+      <div class="delta">${deltaTxt}</div>
+      <div class="stepper-row chamber-setpoint">
+        <span class="stepper-label">Setpoint</span>
+        <button class="action stepper-btn" data-action="temp-down">−</button>
+        <input
+          type="number"
+          inputmode="numeric"
+          min="180"
+          max="500"
+          step="1"
+          class="stepper-input"
+          data-input="setpoint"
+          value="${sp}">
+        <span class="stepper-unit">°F</span>
+        <button class="action stepper-btn" data-action="temp-up">+</button>
+      </div>
     </div>
   `;
 }
