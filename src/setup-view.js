@@ -20,6 +20,13 @@ const INDOOR_RE = /\b(indoor|inside|bedroom|bathroom|kitchen|living|hallway|offi
 
 const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|yard|weather|ambient|station|pws|awn|tempest|davis|ecowitt|netatmo)\b/i;
 
+// Most weather / outdoor-station integrations stamp an `attribution`
+// attribute on their entities (e.g. "Data provided by ambientnetwork.net"
+// for AWN, "Powered by WeatherFlow" for Tempest, etc). When the entity_id
+// itself doesn't carry an outdoor hint (user has named their station
+// something arbitrary), the attribution is a reliable fallback signal.
+const WEATHER_ATTRIBUTION_RE = /(ambient[a-z]*network|ambientweather|tempest|weatherflow|openweathermap|dark[- ]?sky|met\.no|met office|accuweather|weather\.gov|nws|pirate weather|aemet|wunderground|weatherapi|netatmo|ecowitt|davis\b|wxinsight|meteo|aprs|ambientcwop|cwop|airnow)/i;
+
 const WIND_UNIT_RE = /\b(mph|m\/s|km\/h|knots?)\b/i;
 const WIND_HINT_RE = /\b(wind|gust)\b/i;
 
@@ -44,14 +51,19 @@ function detectAmbientCandidates(hass, prefix) {
       continue;
     }
 
-    // Sensor entities: only suggest when there's BOTH a temperature
-    // signal AND an explicit outdoor-y hint in the entity_id. This is
-    // what keeps random house-temp / device-temp sensors out of the list.
+    // Sensor entities: must be a temperature sensor AND have at least
+    // one outdoor signal — either an outdoor-y hint in the entity_id
+    // OR an attribution attribute that names a weather integration
+    // (AWN, Tempest, OpenWeatherMap, etc — see WEATHER_ATTRIBUTION_RE).
     const dc = st.attributes?.device_class;
     const unit = st.attributes?.unit_of_measurement || "";
     const isTempSensor = dc === "temperature" || /°[FC]|degf|degc/i.test(unit);
     if (!isTempSensor) continue;
-    if (!OUTDOOR_HINT_RE.test(eid)) continue;
+
+    const eidHint = OUTDOOR_HINT_RE.test(eid);
+    const attribution = String(st.attributes?.attribution || "");
+    const attrHint = WEATHER_ATTRIBUTION_RE.test(attribution);
+    if (!eidHint && !attrHint) continue;
 
     const v = parseFloat(st.state);
     if (!Number.isFinite(v)) continue;
@@ -75,11 +87,14 @@ function detectWindCandidates(hass, prefix) {
     if (ownPrefixRe && ownPrefixRe.test(eid)) continue;
     if (INDOOR_RE.test(eid)) continue;
     const unit = st.attributes?.unit_of_measurement || "";
-    // Require BOTH an entity_id wind hint AND a wind-y unit.
-    // This filters things like sensor.battery_voltage that might
-    // accidentally be in m/s, or sensor.window_count.
-    if (!WIND_HINT_RE.test(eid)) continue;
+    // Wind-unit + (wind-name OR weather-integration attribution).
+    // Same fallback logic as ambient — lets stations with unique
+    // names still qualify when their attribution names a weather svc.
     if (!WIND_UNIT_RE.test(unit)) continue;
+    const eidHint = WIND_HINT_RE.test(eid);
+    const attribution = String(st.attributes?.attribution || "");
+    const attrHint = WEATHER_ATTRIBUTION_RE.test(attribution);
+    if (!eidHint && !attrHint) continue;
     const v = parseFloat(st.state);
     if (!Number.isFinite(v)) continue;
     out.push({ eid, value: v, unit });
@@ -192,10 +207,11 @@ export function renderSetup(state, config, hass) {
             detectWindCandidates(hass, config?.entity_prefix))}
       </div>
       <div class="small" style="margin-top:8px;">
-        💡 Suggestions are conservative — only <strong>weather.*</strong> entities
-        and sensors whose entity_id contains an outdoor hint
-        (<em>outdoor / outside / weather / station / pws / patio …</em>) show up.
-        If yours doesn't match, just type the entity_id manually.
+        💡 Suggestions match weather-integration sources:
+        <strong>weather.*</strong> entities, sensors with outdoor hints in their
+        entity_id, OR sensors whose <em>attribution</em> attribute names a known
+        weather provider (AWN, Tempest, OpenWeatherMap, NWS, AccuWeather, etc).
+        If yours doesn't appear, just type the entity_id manually.
       </div>
     </div>
   `;
