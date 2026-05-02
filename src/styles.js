@@ -239,4 +239,62 @@ export const STYLES = `
   @media (max-width: 600px) {
     .row { grid-template-columns: 1fr; }
   }
+
+  /* Tab strip */
+  .tab-strip {
+    display: flex;
+    gap: 4px;
+    background: ${THEME.panel};
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid ${THEME.panelBorder};
+  }
+  .tab {
+    flex: 1;
+    background: transparent;
+    color: ${THEME.textDim};
+    border: none;
+    border-radius: 7px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab:hover { color: ${THEME.text}; }
+  .tab.active {
+    background: ${THEME.bg};
+    color: ${THEME.accent};
+    border: 1px solid ${THEME.panelBorder};
+  }
+
+  /* Setup view */
+  .setup-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 16px;
+    align-items: center;
+  }
+  .setup-key { color: ${THEME.textDim}; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .setup-val { color: ${THEME.text}; font-size: 14px; }
+  .setup-val.bad { color: ${THEME.alarm}; }
+  .setup-link {
+    color: ${THEME.accent};
+    text-decoration: none;
+  }
+  .setup-link:hover { text-decoration: underline; }
+  .resolved-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .resolved-badge.ok  { color: ${THEME.steady}; border-color: ${THEME.steady}; background: rgba(34, 197, 94, 0.08); }
+  .resolved-badge.bad { color: ${THEME.alarm};  border-color: ${THEME.alarm};  background: rgba(248, 113, 113, 0.08); }
+  /* Setup uses 3-col grid for sensor rows (label / input / badge) */
+  [data-slot="setup"] .session {
+    grid-template-columns: auto 1fr auto;
+  }
 `;

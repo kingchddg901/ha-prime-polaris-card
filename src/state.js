@@ -118,6 +118,24 @@ export function buildState(hass, prefix) {
     pushOn:         bool("push_alerts"),
     pushDedupe:     num("push_dedupe"),
 
+    // Account info — best-effort; pulled from the integration's
+    // config entry diagnostics if exposed, else null. Falls back
+    // gracefully when these attrs aren't present.
+    account: (() => {
+      // Token email is exposed by the climate entity's friendly_name
+      // device, but the cleanest source is the integration's own
+      // attributes. Prime Polaris doesn't expose them on a sensor yet,
+      // so we leave this null for now and let the future integration
+      // add a dedicated `sensor.{prefix}_account` if needed.
+      const climate = get("climate");
+      const email = climate?.attributes?.email ?? null;
+      const expiry = climate?.attributes?.token_expiry ?? null;
+      const daysToExpiry = expiry
+        ? Math.max(0, Math.round((expiry * 1000 - Date.now()) / 86_400_000))
+        : null;
+      return { email, daysToExpiry };
+    })(),
+
     // Last alarm
     lastAlarm: (() => {
       const s = get("last_alarm");

@@ -17,7 +17,9 @@ import {
   renderControls,
   renderSession,
   renderAlarm,
+  renderTabs,
 } from "./renderers.js";
+import { renderSetup } from "./setup-view.js";
 
 class HaPrimePolarisCard extends HTMLElement {
 
@@ -28,6 +30,7 @@ class HaPrimePolarisCard extends HTMLElement {
     this._config   = null;
     this._state    = null;
     this._chart    = null;
+    this._view     = "live";          // "live" | "setup"
     this._renderQueued = false;
   }
 
@@ -70,25 +73,51 @@ class HaPrimePolarisCard extends HTMLElement {
 
   _render() {
     const state = this._state;
-    if (!this.shadowRoot.firstElementChild) {
-      this.shadowRoot.innerHTML = `
-        <style>${STYLES}</style>
-        <div class="card">
-          <div data-slot="alarm"></div>
-          <div data-slot="chips"></div>
-          <div class="row">
-            <div data-slot="chamber"></div>
-            <div data-slot="cookHeader"></div>
-          </div>
-          <div data-slot="probes"></div>
-          <div class="chart-host" data-slot="chart"></div>
-          <div data-slot="controls"></div>
-          <div data-slot="session"></div>
-        </div>
-      `;
+    // Re-stamp the shell when the view changes so each tab can have
+    // its own slot layout. Keeps wiring clean — no view-aware fills.
+    if (!this.shadowRoot.firstElementChild ||
+        this.shadowRoot.firstElementChild.dataset.view !== this._view) {
+      this._stampShell();
       this._wireEvents();
     }
 
+    this._fill("tabs", renderTabs(this._view));
+
+    if (this._view === "live") {
+      this._renderLive(state);
+    } else {
+      this._renderSetup(state);
+    }
+  }
+
+  _stampShell() {
+    const liveBody = `
+      <div data-slot="alarm"></div>
+      <div data-slot="chips"></div>
+      <div class="row">
+        <div data-slot="chamber"></div>
+        <div data-slot="cookHeader"></div>
+      </div>
+      <div data-slot="probes"></div>
+      <div class="chart-host" data-slot="chart"></div>
+      <div data-slot="controls"></div>
+      <div data-slot="session"></div>
+    `;
+    const setupBody = `
+      <div data-slot="setup"></div>
+    `;
+    this.shadowRoot.innerHTML = `
+      <style>${STYLES}</style>
+      <div class="card" data-view="${this._view}">
+        <div data-slot="tabs"></div>
+        ${this._view === "live" ? liveBody : setupBody}
+      </div>
+    `;
+    // Chart instance lives within the chart slot — discard if leaving live
+    if (this._view !== "live") this._chart = null;
+  }
+
+  _renderLive(state) {
     this._fill("alarm",      renderAlarm(state));
     this._fill("chips",      renderStatusChips(state));
     this._fill("chamber",    renderChamber(state));
@@ -104,7 +133,6 @@ class HaPrimePolarisCard extends HTMLElement {
       attachGaugeDrag(gauge, (v) => actions.setSetpoint(v));
     }
 
-    // Chart updates (entity ids depend on prefix)
     if (this._hass && state) {
       if (!this._chart) {
         const host = this.shadowRoot.querySelector('[data-slot="chart"]');
@@ -117,6 +145,10 @@ class HaPrimePolarisCard extends HTMLElement {
       ];
       this._chart.update(this._hass, ids);
     }
+  }
+
+  _renderSetup(state) {
+    this._fillPreserveFocus("setup", renderSetup(state, this._config));
   }
 
   _fill(slotName, html) {
@@ -188,6 +220,18 @@ class HaPrimePolarisCard extends HTMLElement {
         return;
       }
 
+      // FCM dedupe seconds (Setup tab)
+      if (key === "push_dedupe") {
+        const v = parseInt(input.value, 10);
+        if (Number.isFinite(v)) {
+          this._hass.callService("number", "set_value", {
+            entity_id: this._state.entityIds.push_dedupe,
+            value: Math.max(10, Math.min(3600, v)),
+          });
+        }
+        return;
+      }
+
       // Free-form text inputs
       const textMap = {
         notes:      "notes",
@@ -216,14 +260,16 @@ class HaPrimePolarisCard extends HTMLElement {
     const sp = this._state.setpoint ?? 225;
 
     switch (action) {
-      case "toggle-session": actions.toggle("cook_session");  break;
-      case "toggle-smoke":   actions.toggle("smoke_mode");    break;
-      case "toggle-winter":  actions.toggle("winter_mode");   break;
-      case "toggle-alarm":   actions.toggle("alarm");         break;
-      case "toggle-push":    actions.toggle("push_alerts");   break;
-      case "temp-up":        actions.setSetpoint(Math.min(500, sp + 1));  break;
-      case "temp-down":      actions.setSetpoint(Math.max(180, sp - 1));  break;
-      case "power-off":      actions.powerOff();              break;
+      case "toggle-session":  actions.toggle("cook_session");  break;
+      case "toggle-smoke":    actions.toggle("smoke_mode");    break;
+      case "toggle-winter":   actions.toggle("winter_mode");   break;
+      case "toggle-alarm":    actions.toggle("alarm");         break;
+      case "toggle-push":     actions.toggle("push_alerts");   break;
+      case "temp-up":         actions.setSetpoint(Math.min(500, sp + 1)); break;
+      case "temp-down":       actions.setSetpoint(Math.max(180, sp - 1)); break;
+      case "power-off":       actions.powerOff();              break;
+      case "set-view-live":   this._view = "live";  this._scheduleRender(); break;
+      case "set-view-setup":  this._view = "setup"; this._scheduleRender(); break;
     }
   }
 }

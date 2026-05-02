@@ -181,7 +181,7 @@ export function renderSession(state) {
   if (!state) return "";
   return `
     <div class="panel">
-      <div class="panel-label">Session inputs</div>
+      <div class="panel-label">This cook</div>
       <div class="session">
         <label>Protein</label>
         <input type="text" data-input="protein"   value="${escapeHtml(state.protein)}"   placeholder="brisket / pork / ribs">
@@ -189,11 +189,27 @@ export function renderSession(state) {
         <input type="text" data-input="weight_lb" value="${escapeHtml(state.weight_lb)}" placeholder="16">
         <label>Notes</label>
         <input type="text" data-input="notes"     value="${escapeHtml(state.notes)}"     placeholder="oak, low and slow">
-        <label>Ambient</label>
-        <input type="text" data-input="ambient"   value="${escapeHtml(state.ambient)}"   placeholder="entity_id or fixed °F">
-        <label>Wind</label>
-        <input type="text" data-input="wind"      value="${escapeHtml(state.wind)}"      placeholder="entity_id or fixed value">
       </div>
+      <div class="small" style="margin-top:8px;">
+        Ambient / wind sensors are configured once in the
+        <strong>Setup</strong> tab and persist across cooks.
+      </div>
+    </div>
+  `;
+}
+
+// Top-of-card tab strip
+export function renderTabs(currentView) {
+  const tab = (view, label) => `
+    <button class="tab ${currentView === view ? "active" : ""}"
+            data-action="set-view-${view}">
+      ${label}
+    </button>
+  `;
+  return `
+    <div class="tab-strip">
+      ${tab("live",  "Live")}
+      ${tab("setup", "Setup")}
     </div>
   `;
 }
