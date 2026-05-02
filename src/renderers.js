@@ -55,27 +55,29 @@ export function renderChamber(state) {
 export function renderStatusChips(state) {
   if (!state) return "";
   const chips = [];
-  if (state.runningStatus) chips.push({ cls: "active", txt: state.runningStatus });
-  chips.push({ cls: state.activeMode === "smoke" ? "smoke" : "active",
-               txt: `mode: ${state.activeMode}` });
+  if (state.runningStatus) chips.push({ cls: "active", txt: titleCase(state.runningStatus) });
+  chips.push({
+    cls: state.activeMode === "smoke" ? "smoke" : "active",
+    txt: `Mode: ${titleCase(state.activeMode)}`,
+  });
   if (state.smokeOn && state.smokeLevel != null) {
-    chips.push({ cls: "smoke", txt: `smoke ${state.smokeLevel.toFixed(0)}` });
+    chips.push({ cls: "smoke", txt: `Smoke ${state.smokeLevel.toFixed(0)}` });
   }
-  if (state.alarmOn)  chips.push({ cls: "alarm", txt: "alarm armed" });
-  if (state.winterOn) chips.push({ cls: "active", txt: "winter" });
-  if (state.pushOn)   chips.push({ cls: "active", txt: "push on" });
+  if (state.alarmOn)  chips.push({ cls: "alarm", txt: "Alarm Armed" });
+  if (state.winterOn) chips.push({ cls: "active", txt: "Winter" });
+  if (state.pushOn)   chips.push({ cls: "active", txt: "Push On" });
 
   // Ambient + wind chips (only when the user has typed something).
   // Source attribution is dropped — they already know what they typed.
   if (state.ambient) {
     chips.push(state.ambientResolved.value != null
-      ? { cls: "active", txt: `ambient ${state.ambientResolved.value.toFixed(0)}°F` }
-      : { cls: "alarm",  txt: "ambient unresolved" });
+      ? { cls: "active", txt: `Ambient ${state.ambientResolved.value.toFixed(0)}°F` }
+      : { cls: "alarm",  txt: "Ambient Unresolved" });
   }
   if (state.wind) {
     chips.push(state.windResolved.value != null
-      ? { cls: "active", txt: `wind ${state.windResolved.value.toFixed(1)}` }
-      : { cls: "alarm",  txt: "wind unresolved" });
+      ? { cls: "active", txt: `Wind ${state.windResolved.value.toFixed(1)}` }
+      : { cls: "alarm",  txt: "Wind Unresolved" });
   }
 
   return `
@@ -83,6 +85,16 @@ export function renderStatusChips(state) {
       ${chips.map((c) => `<span class="chip ${c.cls}">${escapeHtml(c.txt)}</span>`).join("")}
     </div>
   `;
+}
+
+function titleCase(s) {
+  if (!s) return "";
+  return String(s)
+    .split(/(\s+)/)
+    .map((part) => part.length === 0 || /\s+/.test(part)
+      ? part
+      : part[0].toUpperCase() + part.slice(1).toLowerCase())
+    .join("");
 }
 
 // === Cook session header =====================================
