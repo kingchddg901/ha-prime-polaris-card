@@ -181,10 +181,20 @@ export const STYLES = `
 
   .session {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     gap: 8px 12px;
     align-items: center;
   }
+  .resolved-badge {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .resolved-badge.ok  { color: ${THEME.steady}; border-color: ${THEME.steady}; background: rgba(34, 197, 94, 0.08); }
+  .resolved-badge.bad { color: ${THEME.alarm};  border-color: ${THEME.alarm};  background: rgba(248, 113, 113, 0.08); }
   .session input[type="text"], .session input[type="number"] {
     background: ${THEME.bg};
     color: ${THEME.text};

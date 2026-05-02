@@ -180,23 +180,44 @@ export function renderControls(state) {
 
 export function renderSession(state) {
   if (!state) return "";
+  const ambientBadge = renderResolvedBadge(state.ambient, state.ambientResolved, "°F");
+  const windBadge    = renderResolvedBadge(state.wind,    state.windResolved,    "");
   return `
     <div class="panel">
       <div class="panel-label">Session inputs</div>
       <div class="session">
         <label>Protein</label>
         <input type="text" data-input="protein"   value="${escapeHtml(state.protein)}"   placeholder="brisket / pork / ribs">
+        <span></span>
+
         <label>Weight (lb)</label>
         <input type="text" data-input="weight_lb" value="${escapeHtml(state.weight_lb)}" placeholder="16">
+        <span></span>
+
         <label>Notes</label>
         <input type="text" data-input="notes"     value="${escapeHtml(state.notes)}"     placeholder="oak, low and slow">
+        <span></span>
+
         <label>Ambient</label>
-        <input type="text" data-input="ambient"   value="${escapeHtml(state.ambient)}"   placeholder="weather.home or 32">
+        <input type="text" data-input="ambient"   value="${escapeHtml(state.ambient)}"   placeholder="weather.home, sensor.outdoor_temp, or 32">
+        ${ambientBadge}
+
         <label>Wind</label>
-        <input type="text" data-input="wind"      value="${escapeHtml(state.wind)}"      placeholder="entity_id or m/s">
+        <input type="text" data-input="wind"      value="${escapeHtml(state.wind)}"      placeholder="sensor.wind_speed or m/s value">
+        ${windBadge}
       </div>
     </div>
   `;
+}
+
+function renderResolvedBadge(raw, resolved, unitSuffix) {
+  if (!raw) {
+    return `<span></span>`;
+  }
+  if (resolved && resolved.value != null) {
+    return `<span class="resolved-badge ok">${resolved.value.toFixed(1)}${unitSuffix}</span>`;
+  }
+  return `<span class="resolved-badge bad">unresolved</span>`;
 }
 
 // === Last alarm banner ======================================
