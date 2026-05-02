@@ -38,7 +38,11 @@ export function renderArcGauge(cfg) {
   const bgPath  = arcPath(cx, cy, r, ARC_START_DEG, ARC_END_DEG);
   const fillPth = arcPath(cx, cy, r, ARC_START_DEG, curAngle);
 
-  const tgtPos = polar(cx, cy, r, tgtAngle);
+  // Setpoint tick — a short line crossing the track at the target
+  // angle. Reads as a marker, not a draggable control. The arc-gauge
+  // is display-only; setpoint is set via the type-in input below.
+  const tickInner = polar(cx, cy, r - 10, tgtAngle);
+  const tickOuter = polar(cx, cy, r + 10, tgtAngle);
 
   return `
     <svg
@@ -65,12 +69,13 @@ export function renderArcGauge(cfg) {
         stroke-linecap="round"
         fill="none" />
 
-      <!-- setpoint indicator (display-only; setpoint is set via the
-           type-in input in the chamber panel) -->
-      <circle cx="${tgtPos.x}" cy="${tgtPos.y}" r="11"
-        fill="${THEME.accent}"
-        stroke="${THEME.text}"
-        stroke-width="2" />
+      <!-- setpoint marker tick -->
+      <line
+        x1="${tickInner.x}" y1="${tickInner.y}"
+        x2="${tickOuter.x}" y2="${tickOuter.y}"
+        stroke="${THEME.accent}"
+        stroke-width="3"
+        stroke-linecap="round" />
 
       <!-- center readout: big chamber temp, small target -->
       <text x="${cx}" y="${cy - 4}"
