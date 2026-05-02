@@ -31,6 +31,7 @@ class HaPrimePolarisCard extends HTMLElement {
     this._state    = null;
     this._chart    = null;
     this._view     = "live";          // "live" | "setup"
+    this._dismissedAlarmId = null;    // captured_at of the alarm the user dismissed
     this._renderQueued = false;
   }
 
@@ -118,7 +119,7 @@ class HaPrimePolarisCard extends HTMLElement {
   }
 
   _renderLive(state) {
-    this._fill("alarm",      renderAlarm(state));
+    this._fill("alarm",      renderAlarm(state, this._dismissedAlarmId));
     this._fill("chips",      renderStatusChips(state));
     this._fill("chamber",    renderChamber(state));
     this._fill("cookHeader", renderCookHeader(state));
@@ -270,6 +271,14 @@ class HaPrimePolarisCard extends HTMLElement {
       case "power-off":       actions.powerOff();              break;
       case "set-view-live":   this._view = "live";  this._scheduleRender(); break;
       case "set-view-setup":  this._view = "setup"; this._scheduleRender(); break;
+      case "dismiss-alarm":
+        // Capture the alarm's id so subsequent renders hide it.
+        // A new alarm (different captured_at) will surface automatically.
+        if (this._state?.lastAlarm) {
+          this._dismissedAlarmId = this._state.lastAlarm.captured_at;
+          this._scheduleRender();
+        }
+        break;
     }
   }
 }

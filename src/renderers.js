@@ -216,16 +216,22 @@ export function renderTabs(currentView) {
 
 // === Last alarm banner ======================================
 
-export function renderAlarm(state) {
+export function renderAlarm(state, dismissedAlarmId) {
   if (!state) return "";
   const a = state.lastAlarm;
   if (!a) {
     return `<div class="alarm-banner dim">no alarms</div>`;
   }
+  // Dismissed banners collapse to the same minimal "no alarms" state.
+  // Comparing by captured_at means a new alarm with a fresh timestamp
+  // will reappear automatically.
+  if (dismissedAlarmId && dismissedAlarmId === a.captured_at) {
+    return `<div class="alarm-banner dim">no alarms (dismissed)</div>`;
+  }
   return `
     <div class="alarm-banner">
       <span><strong>${escapeHtml(a.title)}</strong> · ${escapeHtml(a.body)}</span>
-      <span class="small">${escapeHtml(a.source ?? "")}</span>
+      <button class="alarm-dismiss" data-action="dismiss-alarm" title="Dismiss">✕</button>
     </div>
   `;
 }

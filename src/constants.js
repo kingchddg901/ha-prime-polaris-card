@@ -1,7 +1,7 @@
 // Single source of truth for the custom-element name and version.
 
 export const CARD_NAME    = "ha-prime-polaris-card";
-export const CARD_VERSION = "0.2.0";
+export const CARD_VERSION = "0.2.1";
 
 // Default entity prefix when card config doesn't override.
 // Most HA installs of the Prime Polaris integration end up with

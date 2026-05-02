@@ -228,12 +228,27 @@ export const STYLES = `
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
   }
   .alarm-banner.dim {
     background: ${THEME.panel};
     border-color: ${THEME.panelBorder};
     color: ${THEME.textDim};
   }
+  .alarm-dismiss {
+    background: transparent;
+    color: ${THEME.text};
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    flex: 0 0 auto;
+    transition: background 0.15s;
+  }
+  .alarm-dismiss:hover { background: rgba(255,255,255,0.1); }
   .small { font-size: 11px; color: ${THEME.textDim}; }
 
   @media (max-width: 600px) {
