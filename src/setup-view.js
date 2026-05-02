@@ -38,7 +38,10 @@ const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|y
 const WEATHER_ATTRIBUTION_RE = /(ambient[a-z]*network|ambientweather|tempest|weatherflow|openweathermap|dark[- ]?sky|met\.no|met office|accuweather|weather\.gov|nws|pirate weather|aemet|wunderground|weatherapi|netatmo|ecowitt|davis\b|wxinsight|meteo|aprs|ambientcwop|cwop|airnow)/i;
 
 const WIND_UNIT_RE = /\b(mph|m\/s|km\/h|knots?)\b/i;
-const WIND_HINT_RE = /\b(wind|gust)\b/i;
+const WIND_HINT_RE = /\bwind\b/i;
+// Gust readings (peak instantaneous) aren't useful for cook-context
+// math — we want sustained wind speed for convective-loss modeling.
+const GUST_RE = /(?<![a-zA-Z])gust(?![a-zA-Z])/i;
 
 function detectAmbientCandidates(hass, prefix) {
   if (!hass) return [];
@@ -97,6 +100,7 @@ function detectWindCandidates(hass, prefix) {
   for (const [eid, st] of Object.entries(hass.states)) {
     if (ownPrefixRe && ownPrefixRe.test(eid)) continue;
     if (INDOOR_RE.test(eid)) continue;
+    if (GUST_RE.test(eid)) continue;
     const unit = st.attributes?.unit_of_measurement || "";
     // Wind-unit + (wind-name OR weather-integration attribution).
     // Same fallback logic as ambient — lets stations with unique
