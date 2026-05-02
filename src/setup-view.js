@@ -150,7 +150,7 @@ function renderSensorRow(label, inputKey, raw, resolved, unit, candidates) {
   `;
 }
 
-export function renderSetup(state, config, hass) {
+export function renderSetup(state, config, hass, otpFlow) {
   if (!state || !state.account) {
     return `
       <div class="panel"><div class="small">Loading account info…</div></div>
@@ -159,6 +159,65 @@ export function renderSetup(state, config, hass) {
 
   const a = state.account;
   const expiryClass = a.daysToExpiry != null && a.daysToExpiry < 14 ? "bad" : "";
+  const flow = otpFlow || { stage: "idle", email: a.email || "", error: "" };
+
+  // Account block: shows current account + inline re-auth flow.
+  // Stage state machine:
+  //   idle      → just show "Re-authenticate" button
+  //   email     → email input + Send code button
+  //   otp       → email pinned, OTP input + Sign in button
+  //   sending   → busy spinner on Send code
+  //   verifying → busy spinner on Sign in
+  //   done      → temporary success message
+  let authUI = "";
+  if (flow.stage === "idle") {
+    authUI = `
+      <button class="action" data-action="auth-start">Re-authenticate</button>
+      <button class="action" data-action="reset-cook-inputs"
+              title="Clears notes / protein / weight">Reset cook inputs</button>
+    `;
+  } else if (flow.stage === "email" || flow.stage === "sending") {
+    authUI = `
+      <div class="auth-flow">
+        <input type="email" class="stepper-input wide"
+               data-input="auth_email"
+               value="${escapeHtml(flow.email)}"
+               placeholder="email@example.com"
+               autocomplete="email">
+        <button class="action ${flow.stage === "sending" ? "on" : ""}"
+                data-action="auth-request-otp"
+                ${flow.stage === "sending" ? "disabled" : ""}>
+          ${flow.stage === "sending" ? "Sending…" : "Send code"}
+        </button>
+        <button class="action" data-action="auth-cancel">Cancel</button>
+      </div>
+      ${flow.error ? `<div class="small auth-error">${escapeHtml(flow.error)}</div>` : ""}
+    `;
+  } else if (flow.stage === "otp" || flow.stage === "verifying") {
+    authUI = `
+      <div class="setup-grid" style="margin-bottom:8px;">
+        <span class="setup-key">Email</span>
+        <span class="setup-val">${escapeHtml(flow.email)}</span>
+      </div>
+      <div class="auth-flow">
+        <input type="text" inputmode="numeric" maxlength="10"
+               class="stepper-input"
+               data-input="auth_otp"
+               value="${escapeHtml(flow.otp || "")}"
+               placeholder="6-digit code"
+               autocomplete="one-time-code">
+        <button class="action ${flow.stage === "verifying" ? "on" : ""}"
+                data-action="auth-verify-otp"
+                ${flow.stage === "verifying" ? "disabled" : ""}>
+          ${flow.stage === "verifying" ? "Verifying…" : "Sign in"}
+        </button>
+        <button class="action" data-action="auth-cancel">Cancel</button>
+      </div>
+      ${flow.error ? `<div class="small auth-error">${escapeHtml(flow.error)}</div>` : ""}
+    `;
+  } else if (flow.stage === "done") {
+    authUI = `<div class="small auth-success">✓ Re-authenticated successfully.</div>`;
+  }
 
   return `
     <div class="panel">
@@ -171,14 +230,8 @@ export function renderSetup(state, config, hass) {
         <span class="setup-val ${expiryClass}">
           ${a.daysToExpiry != null ? `in ${a.daysToExpiry} days` : "—"}
         </span>
-
-        <span class="setup-key">Manage</span>
-        <span class="setup-val">
-          <a class="setup-link" href="/config/integrations/integration/prime_polaris" target="_top">
-            Open in HA Settings →
-          </a>
-        </span>
       </div>
+      <div class="auth-actions">${authUI}</div>
     </div>
 
     <div class="panel">

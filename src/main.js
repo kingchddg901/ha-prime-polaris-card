@@ -31,6 +31,7 @@ class HaPrimePolarisCard extends HTMLElement {
     this._chart    = null;
     this._view     = "live";          // "live" | "setup"
     this._dismissedAlarmId = null;    // captured_at of the alarm the user dismissed
+    this._otpFlow = { stage: "idle", email: "", otp: "", error: "" };
     this._renderQueued = false;
   }
 
@@ -141,7 +142,10 @@ class HaPrimePolarisCard extends HTMLElement {
   }
 
   _renderSetup(state) {
-    this._fillPreserveFocus("setup", renderSetup(state, this._config, this._hass));
+    this._fillPreserveFocus(
+      "setup",
+      renderSetup(state, this._config, this._hass, this._otpFlow),
+    );
   }
 
   _fill(slotName, html) {
@@ -239,6 +243,16 @@ class HaPrimePolarisCard extends HTMLElement {
         return;
       }
 
+      // OTP-flow input bindings — kept on the card instance, not in HA
+      if (key === "auth_email") {
+        this._otpFlow.email = input.value;
+        return;
+      }
+      if (key === "auth_otp") {
+        this._otpFlow.otp = input.value;
+        return;
+      }
+
       // Free-form text inputs
       const textMap = {
         notes:      "notes",
@@ -250,15 +264,100 @@ class HaPrimePolarisCard extends HTMLElement {
       if (textMap[key]) actions.setText(textMap[key], input.value);
     });
 
-    // Live readout for the smoke-level slider while dragging
+    // Live updates while user is interacting with inputs:
+    //   - smoke-level slider readout
+    //   - OTP-flow email / OTP value mirroring (so cancel doesn't
+    //     lose what they typed mid-flow)
     this.shadowRoot.addEventListener("input", (e) => {
-      const input = e.target.closest('[data-input="smoke_level"]');
+      const input = e.target.closest("[data-input]");
       if (!input) return;
-      const readout = this.shadowRoot.querySelector(
-        '[data-bind="smoke-level-readout"]'
-      );
-      if (readout) readout.textContent = input.value;
+      const key = input.dataset.input;
+      if (key === "smoke_level") {
+        const readout = this.shadowRoot.querySelector(
+          '[data-bind="smoke-level-readout"]'
+        );
+        if (readout) readout.textContent = input.value;
+      }
+      if (key === "auth_email") this._otpFlow.email = input.value;
+      if (key === "auth_otp")   this._otpFlow.otp   = input.value;
     });
+  }
+
+  // === Auth / OTP flow ====================================
+
+  _authStart() {
+    this._otpFlow = {
+      stage: "email",
+      email: this._state?.account?.email || "",
+      otp: "",
+      error: "",
+    };
+    this._scheduleRender();
+  }
+
+  _authCancel() {
+    this._otpFlow = { stage: "idle", email: "", otp: "", error: "" };
+    this._scheduleRender();
+  }
+
+  async _authRequestOtp() {
+    if (!this._hass) return;
+    const email = (this._otpFlow.email || "").trim();
+    if (!email) {
+      this._otpFlow.error = "Email required";
+      this._scheduleRender();
+      return;
+    }
+    this._otpFlow.stage = "sending";
+    this._otpFlow.error = "";
+    this._scheduleRender();
+    try {
+      await this._hass.callService("prime_polaris", "request_otp", { email });
+      this._otpFlow.stage = "otp";
+    } catch (err) {
+      this._otpFlow.stage = "email";
+      this._otpFlow.error = err?.message || String(err);
+    }
+    this._scheduleRender();
+  }
+
+  async _authVerifyOtp() {
+    if (!this._hass) return;
+    const email = (this._otpFlow.email || "").trim();
+    const otp   = (this._otpFlow.otp   || "").trim();
+    if (!otp) {
+      this._otpFlow.error = "Enter the code";
+      this._scheduleRender();
+      return;
+    }
+    this._otpFlow.stage = "verifying";
+    this._otpFlow.error = "";
+    this._scheduleRender();
+    try {
+      await this._hass.callService("prime_polaris", "verify_otp", { email, otp });
+      this._otpFlow.stage = "done";
+      this._scheduleRender();
+      // Auto-collapse after a brief success indicator
+      setTimeout(() => {
+        if (this._otpFlow.stage === "done") {
+          this._otpFlow = { stage: "idle", email: "", otp: "", error: "" };
+          this._scheduleRender();
+        }
+      }, 2500);
+    } catch (err) {
+      this._otpFlow.stage = "otp";
+      this._otpFlow.error = err?.message || String(err);
+      this._scheduleRender();
+    }
+  }
+
+  async _resetCookInputs() {
+    if (!this._hass) return;
+    try {
+      await this._hass.callService("prime_polaris", "clear_cook_inputs", {});
+    } catch (err) {
+      console.warn("clear_cook_inputs failed:", err);
+    }
   }
 
   _dispatchAction(action) {
@@ -285,6 +384,11 @@ class HaPrimePolarisCard extends HTMLElement {
           this._scheduleRender();
         }
         break;
+      case "auth-start":          this._authStart();        break;
+      case "auth-cancel":         this._authCancel();       break;
+      case "auth-request-otp":    this._authRequestOtp();   break;
+      case "auth-verify-otp":     this._authVerifyOtp();    break;
+      case "reset-cook-inputs":   this._resetCookInputs();  break;
     }
   }
 }

@@ -304,6 +304,22 @@ export const STYLES = `
     text-decoration: none;
   }
   .setup-link:hover { text-decoration: underline; }
+  .auth-actions {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .auth-flow {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .stepper-input.wide { width: 240px; text-align: left; }
+  .auth-error   { color: ${THEME.alarm};  margin-top: 6px; }
+  .auth-success { color: ${THEME.steady}; margin-top: 6px; }
+  .action[disabled] { opacity: 0.6; cursor: not-allowed; }
   .resolved-badge {
     font-size: 12px;
     padding: 4px 10px;
