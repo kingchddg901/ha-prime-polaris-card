@@ -21,7 +21,12 @@ const INDOOR_RE = /\b(indoor|inside|bedroom|bathroom|kitchen|living|hallway|offi
 // Derived / composite temperature values from weather stations that
 // aren't useful as cook-context ambient. We want raw outdoor air temp,
 // not what it "feels like" or the dew point.
-const DERIVED_TEMP_RE = /\b(feels[ _-]?like|apparent[ _-]?(temp|temperature)|dew[ _-]?point|heat[ _-]?index|wind[ _-]?chill|windchill)\b/i;
+//
+// Note: \b in JS regex treats `_` as a word character, so it WON'T
+// match the boundary in something like "..._dew_point". Use explicit
+// letter-only lookbehind/lookahead instead so underscore-separated
+// entity_id segments are matched correctly.
+const DERIVED_TEMP_RE = /(?<![a-zA-Z])(feels[ _-]?like|apparent[ _-]?(?:temp|temperature)|dew[ _-]?point|heat[ _-]?index|wind[ _-]?chill|windchill)(?![a-zA-Z])/i;
 
 const OUTDOOR_HINT_RE = /\b(outdoor|outside|exterior|patio|deck|porch|backyard|yard|weather|ambient|station|pws|awn|tempest|davis|ecowitt|netatmo)\b/i;
 
