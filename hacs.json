@@ -1,0 +1,7 @@
+{
+  "name": "Prime Polaris Grill Card",
+  "render_readme": true,
+  "filename": "ha-prime-polaris-card.js",
+  "homeassistant": "2024.1.0",
+  "content_in_root": false
+}
