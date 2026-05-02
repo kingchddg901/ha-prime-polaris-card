@@ -46,22 +46,25 @@ export const DEFAULT_RECIPES = [
   },
 
   // --- Smoke-mode recipes (no setpoint — controller P-cycles) ---
+  // Chamber temp wobbles considerably in smoke mode (P-cycle, not PID).
+  // Expect ±10-20°F swings — that's normal. The probe target still
+  // fires reliably since meat-side temp is steady.
   {
     id: "smoke_brisket",
     name: "Brisket Smoke",
-    description: "Smoke 5 · P1→203°F",
+    description: "Smoke 5 · P1→203°F · chamber ±15°F",
     apply: { smoke_mode: true, smoke_level: 5, probe_1_target: 203, protein: "brisket" },
   },
   {
     id: "smoke_ribs",
     name: "Ribs Smoke",
-    description: "Smoke 4 · P1→195°F",
+    description: "Smoke 4 · P1→195°F · chamber ±15°F",
     apply: { smoke_mode: true, smoke_level: 4, probe_1_target: 195, protein: "ribs" },
   },
   {
     id: "smoke_only",
     name: "Smoke Only",
-    description: "Smoke 8",
+    description: "Smoke 8 · chamber ±15°F",
     apply: { smoke_mode: true, smoke_level: 8 },
   },
 ];

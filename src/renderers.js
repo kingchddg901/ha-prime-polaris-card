@@ -208,8 +208,9 @@ export function renderRecipes(state, config) {
           </button>`).join("")}
       </div>
       <div class="small" style="margin-top:6px;">
-        Tap a recipe to apply grill temp, smoke, and probe targets in one shot.
-        Time is always yours to manage.
+        Tap to apply grill temp, smoke, and probe targets in one shot.
+        Time stays yours to manage. Smoke mode runs a P-cycle (not PID),
+        so chamber temp swings ±10–20°F by design.
       </div>
     </div>
   `;
