@@ -280,11 +280,11 @@ class HaPrimePolarisCard extends HTMLElement {
         return;
       }
 
-      // Smoke level slider (commit on release)
+      // Smoke level slider (commit on release). Controller clamps at 9.
       if (key === "smoke_level") {
         const v = parseInt(input.value, 10);
         if (Number.isFinite(v)) {
-          actions.setSmokeLevel(Math.max(0, Math.min(10, v)));
+          actions.setSmokeLevel(Math.max(0, Math.min(9, v)));
         }
         return;
       }
@@ -444,7 +444,7 @@ class HaPrimePolarisCard extends HTMLElement {
       }
       if (a.smoke_level != null) {
         await actions.setSmokeLevel(
-          Math.max(0, Math.min(10, a.smoke_level))
+          Math.max(0, Math.min(9, a.smoke_level))
         );
       }
       if (a.smoke_mode != null && a.smoke_mode !== this._state.smokeOn) {

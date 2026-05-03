@@ -252,7 +252,7 @@ export function renderControls(state) {
         <input
           type="range"
           min="0"
-          max="10"
+          max="9"
           step="1"
           class="slider"
           data-input="smoke_level"
